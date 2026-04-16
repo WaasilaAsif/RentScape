@@ -1,0 +1,46 @@
+# Documentation
+*.md
+
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/.turbo/
+
+# Test and coverage
+**/coverage/
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Deployment and local tool state
+**/.vercel/
+
+# Cache
+**/.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.idea/
+
+
+# Ignore all Markdown files via *.md
+# Common Next.js/Node ignores (node_modules, .next, dist/build, coverage, cache)
+# Env file protection (.env and .env.* while keeping .env.example trackable)
+# Logs, Vercel local state, and OS/IDE noise files
