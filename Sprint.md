@@ -1,5 +1,35 @@
 # RentScape — 4-Day Sprint Guide
 
+## Table of Contents
+
+- [Who This Document Is For](#who-this-document-is-for)
+- [The Honest Reality of a 4-Day Coding Sprint](#the-honest-reality-of-a-4-day-coding-sprint)
+- [Collaboration Rules — Non-Negotiable](#collaboration-rules--non-negotiable)
+   - [Rule 1: Nobody works on main or dev directly](#rule-1-nobody-works-on-main-or-dev-directly)
+   - [Rule 2: Morning sync — 15 minutes, every day](#rule-2-morning-sync--15-minutes-every-day)
+   - [Rule 3: The schema is frozen after Day 1](#rule-3-the-schema-is-frozen-after-day-1)
+   - [Rule 4: Define the API contract before splitting off](#rule-4-define-the-api-contract-before-splitting-off)
+   - [Rule 5: Commit every 2 hours minimum](#rule-5-commit-every-2-hours-minimum)
+   - [Rule 6: Blocked for more than 30 minutes? Shout.](#rule-6-blocked-for-more-than-30-minutes-shout)
+   - [Rule 7: branch manager owns integration](#rule-7-branch-manager-owns-integration)
+- [Day-by-Day Plan](#day-by-day-plan)
+   - [Day 1 — Foundation (the most critical day)](#day-1--foundation-the-most-critical-day)
+   - [Day 2 — Core property flow](#day-2--core-property-flow)
+   - [Day 3 — Leases, DB depth, and payments](#day-3--leases-db-depth-and-payments)
+   - [Day 4 — Dashboard, ratings, police verification UI, and deployment](#day-4--dashboard-ratings-police-verification-ui-and-deployment)
+- [The API Contract (agree on this before Day 2)](#the-api-contract-agree-on-this-before-day-2)
+- [Why Each Technical Choice Was Made](#why-each-technical-choice-was-made)
+   - [Why Next.js App Router and not Pages Router](#why-nextjs-app-router-and-not-pages-router)
+   - [Why PostgreSQL and not MongoDB](#why-postgresql-and-not-mongodb)
+   - [Why Prisma and not raw SQL for everything](#why-prisma-and-not-raw-sql-for-everything)
+   - [Why Supabase and not a local PostgreSQL instance](#why-supabase-and-not-a-local-postgresql-instance)
+   - [Why Tailwind and not plain CSS or a component library like MUI](#why-tailwind-and-not-plain-css-or-a-component-library-like-mui)
+   - [Why Leaflet and not Google Maps or Mapbox](#why-leaflet-and-not-google-maps-or-mapbox)
+- [Common Mistakes in 4-Day Sprints](#common-mistakes-in-4-day-sprints)
+- [End-of-Sprint Checklist](#end-of-sprint-checklist)
+- [Resource Summary](#resource-summary)
+   - [YT resources](#yt-resources)
+
 This document is your team's operating manual for the next 4 days. It covers how to collaborate, what to build in what order, why each decision was made, and exactly what to learn before touching each piece. Read it fully before writing a single line of code.
 
 ---
@@ -594,3 +624,52 @@ Before calling it done at the end of Day 4, verify every item on this list:
 | Vercel deployment | vercel.com/docs/deployments/overview | Official, straightforward |
 | Seed data generation | mockaroo.com | Fastest way to get realistic fake data |
 | Git branching (visual) | learngitbranching.js.org | Interactive, builds intuition fast |
+
+### YT resources
+Here's the honest YouTube list — only channels and videos that are actually worth your time, with no fluff.
+
+---
+
+**Next.js — start here**
+
+**Theo (t3.gg)** — the best Next.js explainer on YouTube. Opinionated, fast, industry-aware. Watch his App Router explanations specifically. He'll tell you what actually matters vs what is just documentation padding.
+
+**Josh tried coding** — good for seeing complete small projects built with Next.js + Tailwind + Prisma. Closest to what you're actually building. His "build X in Y hours" videos are well-paced and realistic.
+
+**Web Dev Simplified** — slower and more thorough. Better for your two teammates who are newer. His NextAuth tutorial specifically is the clearest explanation of how sessions and JWT work in plain terms.
+
+---
+
+**Database and PostgreSQL**
+
+**Hussein Nasser** — the best database educator on YouTube by a significant margin. His PostgreSQL playlist covers indexing, transactions, and performance in a way that actually explains *why*, not just *how*. Your DB person needs to watch his indexing videos before writing the indexes.
+
+For PostGIS specifically — YouTube is honestly weak here. The official PostGIS workshop linked in SPRINT.md is better than anything on YouTube for spatial queries. Don't waste time searching.
+
+---
+
+**Tailwind CSS**
+
+**Tailwind Labs official channel** — short focused videos on specific utilities. Not a full course, but perfect for "how do I do X in Tailwind" questions. Your third member should have this bookmarked.
+
+**Kevin Powell** — not Tailwind-specific but the best CSS educator on YouTube. If your third member is confused about flexbox or grid (which Tailwind still uses under the hood), Kevin Powell first, then Tailwind docs.
+
+---
+
+**Git and collaboration**
+
+**The Coding Train — Git and GitHub for Poets** — don't let the name fool you. It's the clearest explanation of branching, merging, and pull requests for someone who has only ever used git as `git add . && git commit && git push`. Your two teammates should watch the branching episode specifically before Day 1.
+
+---
+
+**General system design awareness (optional but good for your profile)**
+
+**ByteByteGo** — system design concepts explained visually. Not directly useful for the sprint but relevant to your broader roadmap. Watching their video on database indexing will make Hussein Nasser's content click faster.
+
+---
+
+**What to avoid**
+
+Avoid tutorial channels that build the exact same to-do app or blog in every video — freeCodeCamp full courses, most "complete Next.js course in X hours" videos. They're fine for absolute beginners but they won't teach your team to think, only to copy. Given your timeline you need people who can reason about problems, not reproduce tutorials.
+
+Also avoid anything NextAuth-related that's older than mid-2023 — the library had major breaking changes with version 5 and most older videos describe a completely different API.
