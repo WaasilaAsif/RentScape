@@ -12,6 +12,8 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^7.7.0",
+    "@supabase/supabase-js": "^2.103.3",
+    "dotenv": "^17.4.2",
     "leaflet": "^1.9.4",
     "next": "16.2.3",
     "next-auth": "^4.24.13",
