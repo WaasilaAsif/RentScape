@@ -1,4 +1,3 @@
-import { connection } from 'next/server'
 import { PrismaClient } from '@/app/generated/prisma/client'
 import { Pool } from 'pg';
 
