@@ -1,5 +1,7 @@
 # Documentation
 *.md
+!logs.md
+!README.md
 
 # Dependencies
 **/node_modules/
@@ -44,3 +46,5 @@ Thumbs.db
 # Common Next.js/Node ignores (node_modules, .next, dist/build, coverage, cache)
 # Env file protection (.env and .env.* while keeping .env.example trackable)
 # Logs, Vercel local state, and OS/IDE noise files
+
+#trak logs.md

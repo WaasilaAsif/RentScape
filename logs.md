@@ -4,6 +4,7 @@
 |---|---|---|---|---|
 | 1 | Aman |Database|  Set up the supabase and made all the tables |
 | 2 | Waasila | Database Connetion | yes | I worked on configuring the prisma for setting up the db and to have a smooth experience but was met with an issue |
+|2.1| Waasila | Database Connection | yes | Eduroam was the culprit|
 
 ## Tell about your problem or in general what you did
 
