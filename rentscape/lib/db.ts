@@ -1,31 +1,27 @@
-import { PrismaClient } from '@/app/generated/prisma/client'
-import {PrismaPg} from '@prisma/adapter-pg'
+import { PrismaClient } from '@/app/generated/prisma/client'; // Verify if /client is needed based on your folder
 import { Pool } from 'pg';
 
-// --- Prisma Singleton ---
-
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-})
+  prisma: PrismaClient | undefined;
+};
+
 export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({
-    adapter
-  })
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    // @ts-expect-error: Prisma 7 uses datasourceUrl, but local types may not have refreshed yet
+    datasourceUrl: process.env.DATABASE_URL,
+    log: ['query', 'error', 'warn'],
+  });
 
 if (process.env.NODE_ENV !== 'production') {
-  // store the instance on globalThis so hot-reload reuses it
-  // fill this in — one line
-  globalForPrisma.prisma = prisma
+  globalForPrisma.prisma = prisma;
 }
-
-// --- pg Pool ---
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  ssl: { rejectUnauthorized: false },
-})
+  // Adding SSL config here ensures the raw 'pool' also works with Supabase IPv4
+  ssl: {
+    rejectUnauthorized: false
+  }
+});

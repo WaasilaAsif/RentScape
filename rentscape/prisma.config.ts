@@ -1,7 +1,5 @@
 import "dotenv/config";
-import { defineConfig } from "prisma/config";
-// Only for debugging purposes, remove this line in production
-// console.log("DATABASE_URL:", process.env["DATABASE_URL"]);
+import { defineConfig } from "@prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -9,6 +7,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DIRECT_URL_IPV4"] 
+    url: process.env["DIRECT_URL"],
+    // // @ts-expect-error: Prisma 7.7.0 types are currently missing directUrl in this object, but the CLI requires it.
+    // directUrl: process.env["DIRECT_URL"], 
   },
 });
