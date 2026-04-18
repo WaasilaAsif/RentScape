@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr' // Supabase helper for server-side auth with cookie support
 import { NextResponse, type NextRequest } from 'next/server' // Next.js middleware request/response utilities
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Create a default response object that allows the request to continue
   // This is also used later to attach updated cookies from Supabase
   let response = NextResponse.next({ request })
@@ -75,7 +75,7 @@ export async function middleware(request: NextRequest) {
   return response
 }
 
-// Middleware configuration: defines which routes this middleware runs on
+// Proxy configuration: defines which routes this proxy runs on
 // Only applies to landlord and tenant sections (not global, not /login)
 export const config = {
   matcher: ['/landlord/:path*', '/tenant/:path*'], // wildcard matches all nested routes

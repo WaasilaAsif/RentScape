@@ -1,4 +1,5 @@
 import { PrismaClient } from '@/app/generated/prisma/client'
+import {PrismaPg} from '@prisma/adapter-pg'
 import { Pool } from 'pg';
 
 // --- Prisma Singleton ---
@@ -6,9 +7,14 @@ import { Pool } from 'pg';
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
-
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+})
 export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient()
+  globalForPrisma.prisma ?? new PrismaClient({
+    adapter
+  })
 
 if (process.env.NODE_ENV !== 'production') {
   // store the instance on globalThis so hot-reload reuses it
@@ -19,7 +25,7 @@ if (process.env.NODE_ENV !== 'production') {
 // --- pg Pool ---
 
 export const pool = new Pool({
-  // fill this in — connectionString from environment, max 10
   connectionString: process.env.DATABASE_URL,
-  max: 10
+  max: 10,
+  ssl: { rejectUnauthorized: false },
 })
