@@ -6,6 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // had to add await. Got an error: "TypeError: Cannot destructure property 'id' of 'params' as it is undefined."
     const { id } =  await params
 
     const propertyResult = await pool.query(
