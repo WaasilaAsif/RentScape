@@ -139,7 +139,7 @@ export async function PUT(
   try {
     // 1. Auth check
     const user = await getSession()
-    console.log('🔍 Session user:', user) // ADD THIS
+    console.log('Session user:', user) // ADD THIS test statement could not find error
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -267,3 +267,82 @@ export async function PUT(
     )
   }
 }
+
+
+// delete funtion
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // 1. Auth check
+    const user = await getSession()
+    console.log('Session user:', user) // ADD THIS test statement could not find error
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 2. Get property ID from params
+    const { id } = await params
+    console.log('Property ID:', id) // ADD THIS
+
+    // 3. Check role
+    const roleResult = await pool.query<{ role: string }>(
+      'SELECT role FROM profiles WHERE id = $1',
+      [user.id]
+    )
+    console.log('🔍 Role result:', roleResult.rows[0]) // ADD THIS
+
+    if (roleResult.rows[0]?.role !== 'landlord') {
+      console.log(' Not a landlord') // ADD THIS
+      return NextResponse.json({ error: 'Only landlords can edit properties' }, { status: 403 })
+    }
+
+    // 4. Verify ownership
+    const ownerResult = await pool.query<{ landlord_id: string }>(
+      'SELECT landlord_id FROM properties WHERE id = $1',
+      [id]
+    )
+    console.log(' Owner result:', ownerResult.rows[0]) // ADD THIS
+    console.log(' Comparing:', { 
+      ownerLandlordId: ownerResult.rows[0]?.landlord_id, 
+      currentUserId: user.id,
+      match: ownerResult.rows[0]?.landlord_id === user.id 
+    }) 
+
+    if (!ownerResult.rows[0]) {
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    }
+
+    if (ownerResult.rows[0].landlord_id !== user.id) {
+      console.log(' Not the owner') // ADD THIS
+      return NextResponse.json({ error: 'You do not own this property' }, { status: 403 })
+    }
+
+    const leaseCheck = await pool.query(
+      `
+      SELECT COUNT(*) FROM leases l
+      JOIN units u ON l.unit_id = u.id
+      WHERE u.property_id = $1 AND l.status = 'active'
+      `,
+      [id]
+    )
+    if (parseInt(leaseCheck.rows[0].count) > 0) {
+      return NextResponse.json({ error: 'Cannot delete property with active leases' }, { status: 400 })
+    }
+    await pool.query(
+      `
+      
+      UPDATE properties SET status = 'inactive' , updated_at = NOW() WHERE id = $1`
+      ,
+      [id]
+    )
+  } catch (err) {
+    const error = err as Error
+    console.error('DELETE /api/properties/[id] error:', error.message)
+    return NextResponse.json({ error: 'Failed to delete property' }, { status: 500 }) 
+   
+  }
+}
+
