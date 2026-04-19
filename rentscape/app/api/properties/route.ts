@@ -111,3 +111,54 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+// app/api/properties/route.ts (add this BELOW your POST function)
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const city = searchParams.get('city')
+    const property_type = searchParams.get('property_type')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    let query = `
+      SELECT 
+        id, landlord_id, title, city, area, property_type,
+        total_units, max_occupants_per_unit, status,
+        ST_Y(location::geometry) as lat,
+        ST_X(location::geometry) as lng,
+        created_at
+      FROM properties
+      WHERE status = 'active'
+    `
+    const params: (string | number)[] = []  // ✅ Fixed
+    let paramCount = 1
+
+    if (city) {
+      query += ` AND city = $${paramCount}`
+      params.push(city)
+      paramCount++
+    }
+
+    if (property_type) {
+      query += ` AND property_type = $${paramCount}::property_type`
+      params.push(property_type)
+      paramCount++
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`
+    params.push(limit, offset)
+
+    const result = await pool.query(query, params)
+
+    return NextResponse.json({ 
+      properties: result.rows,
+      count: result.rows.length 
+    })
+
+  } catch (err: unknown) {  // ✅ Fixed
+    const error = err as Error
+    console.error('GET /api/properties error:', error.message)
+    return NextResponse.json({ error: 'Failed to fetch properties' }, { status: 500 })
+  }
+}
