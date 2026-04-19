@@ -5,13 +5,13 @@ interface TopbarProps {
 
 export function Topbar({ title, subtitle }: TopbarProps) {
   return (
-    <header className="flex flex-col gap-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <header className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-8 shadow-xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Dashboard</p>
-          <h1 className="text-3xl font-semibold text-slate-900">{title}</h1>
+          <p className="text-sm uppercase tracking-widest text-blue-100">Dashboard</p>
+          <h1 className="mt-2 text-4xl font-bold text-white">{title}</h1>
         </div>
-        <div className="rounded-3xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
+        <div className="rounded-xl bg-white/15 px-6 py-3 text-sm font-medium text-blue-50 backdrop-blur-sm border border-white/20">
           {subtitle}
         </div>
       </div>
