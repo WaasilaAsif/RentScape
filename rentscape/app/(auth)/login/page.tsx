@@ -87,12 +87,12 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="bg-anim min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="blob absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-        <div className="blob-2 absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
-        <div className="blob absolute top-1/2 left-1/3 w-64 h-64 rounded-full bg-indigo-400/8 blur-3xl pointer-events-none" style={{ animationDelay: '-2s' }} />
+      <main className="bg-anim min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="blob absolute -top-24 -left-24 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[40rem] lg:h-[40rem] rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+        <div className="blob-2 absolute -bottom-24 -right-24 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[40rem] lg:h-[40rem] rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
+        <div className="blob absolute top-1/2 left-1/3 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full bg-indigo-400/8 blur-3xl pointer-events-none" style={{ animationDelay: '-2s' }} />
 
-        <div className="w-full max-w-md card-appear">
+        <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto card-appear">
           {/* Brand */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
@@ -103,13 +103,13 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 22V12h6v10" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">RentScape</h1>
-            <p className="text-blue-200/80 mt-1 text-sm">Welcome back — sign in to continue</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">RentScape</h1>
+            <p className="text-blue-200/80 mt-1 text-sm sm:text-base">Welcome back — sign in to continue</p>
           </div>
 
           {/* Card */}
           <div style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(24px)', borderRadius: '24px' }}
-            className="p-8 shadow-2xl">
+            className="p-6 sm:p-8 shadow-2xl">
 
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {/* Email */}
@@ -200,7 +200,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </>
   )
 }

@@ -16,6 +16,27 @@
 // lib/db.ts
 import { Pool } from 'pg'
 import { PrismaClient } from '@/app/generated/prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+
+// --- Prisma Singleton ---
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma =
+  globalForPrisma.prisma ?? new PrismaClient({
+    adapter: new PrismaPg({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  })
+
+if (process.env.NODE_ENV !== 'production') {
+  // store the instance on globalThis so hot-reload reuses it
+  globalForPrisma.prisma = prisma
+}
+
+// --- pg Pool ---
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -24,6 +45,3 @@ export const pool = new Pool({
   },
   max: 10,
 })
-
-// Stub Prisma to prevent import errors in other files
-export const prisma = {} as unknown as PrismaClient

@@ -238,23 +238,25 @@ export default function SignupPage() {
         .role-card.active { background: rgba(59,130,246,0.2); border-color: rgba(96,165,250,0.8); }
       `}</style>
 
-      <div className="bg-anim min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="blob absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-        <div className="blob2 absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
+      <main className="bg-anim min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="blob absolute -top-24 -left-24 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[40rem] lg:h-[40rem] rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+        <div className="blob2 absolute -bottom-24 -right-24 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[40rem] lg:h-[40rem] rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-lg card-appear">
-          {/* Brand */}
-          <div className="text-center mb-7">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3"
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)' }}>
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 22V12h6v10" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-white">Create your account</h1>
-            <p className="text-blue-200/70 text-sm mt-1">Step {getActualStep()} of {getTotalDisplaySteps()}</p>
-          </div>
+        <div className="w-full max-w-6xl mx-auto card-appear">
+          <div className="grid gap-8 lg:grid-cols-[1.45fr_0.95fr] items-start">
+            <div>
+              {/* Brand */}
+              <div className="text-center lg:text-left mb-7">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3"
+                  style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)' }}>
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 22V12h6v10" />
+                  </svg>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-white">Create your RentScape account</h1>
+                <p className="text-blue-200/80 text-sm sm:text-base mt-1">Sign up once and access tenant or landlord workflows with a single secure profile.</p>
+              </div>
 
           {/* Progress bar */}
           <div className="mb-6 flex gap-1.5">
@@ -470,7 +472,31 @@ export default function SignupPage() {
             </div>
           </div>
         </div>
-      </div>
+
+            <aside className="rounded-[2rem] border border-white/10 bg-slate-950/75 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.85)]">
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-300/70">Why create an account?</p>
+              <h2 className="mt-4 text-xl font-semibold text-white">Build rental workflows the right way.</h2>
+              <p className="mt-3 text-blue-200/70 text-sm leading-7">
+                Complete your profile once, then manage leases, maintenance, and payments across your chosen role.
+              </p>
+              <div className="mt-6 space-y-4">
+                <div className="rounded-3xl bg-slate-900/80 p-4 border border-white/10">
+                  <p className="text-sm font-semibold text-white">Role-based onboarding</p>
+                  <p className="mt-2 text-blue-200/60 text-sm">Tenant and landlord flows are tailored at signup.</p>
+                </div>
+                <div className="rounded-3xl bg-slate-900/80 p-4 border border-white/10">
+                  <p className="text-sm font-semibold text-white">Secure credentials</p>
+                  <p className="mt-2 text-blue-200/60 text-sm">Password strength guidance and email registration included.</p>
+                </div>
+                <div className="rounded-3xl bg-slate-900/80 p-4 border border-white/10">
+                  <p className="text-sm font-semibold text-white">Faster approvals</p>
+                  <p className="mt-2 text-blue-200/60 text-sm">Collect tenant or landlord details up front so users can move faster.</p>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </main>
     </>
   )
 }

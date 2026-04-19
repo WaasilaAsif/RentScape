@@ -2,44 +2,73 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 rounded-4xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 lg:p-12">
-        <section className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div className="space-y-6">
-            <p className="text-sm uppercase tracking-[0.28em] text-slate-500">RentScape</p>
-            <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">Build rental experiences that feel premium from day one.</h1>
-            <p className="max-w-2xl text-base leading-7 text-slate-600">
-              Auth shells, role-based dashboards, and responsive navigation are ready. The backend can plug in data once the schema is complete.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/login" className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
-                Login
+    <>
+      <style>{`
+        @keyframes gradient-shift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(32px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+        @keyframes blob-float {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33%       { transform: translate(20px, -15px) scale(1.05); }
+          66%       { transform: translate(-10px, 10px) scale(0.97); }
+        }
+        .bg-anim {
+          background: linear-gradient(-45deg, #071928, #0474C4, #06457F, #2C444C, #050f1a);
+          background-size: 400% 400%;
+          animation: gradient-shift 14s ease infinite;
+        }
+        .card-appear { animation: fade-up 0.55s cubic-bezier(0.16,1,0.3,1) both; }
+        .blob { animation: blob-float 9s ease-in-out infinite; }
+        .blob-2 { animation: blob-float 11s ease-in-out infinite reverse; animation-delay: -4s; }
+      `}</style>
+
+      <main className="bg-anim min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="blob absolute -top-24 -left-24 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[40rem] lg:h-[40rem] rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+        <div className="blob-2 absolute -bottom-24 -right-24 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[40rem] lg:h-[40rem] rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
+        <div className="blob absolute top-1/2 left-1/3 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full bg-indigo-400/8 blur-3xl pointer-events-none" style={{ animationDelay: '-2s' }} />
+
+        <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl card-appear">
+          {/* Brand */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)' }}>
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 22V12h6v10" />
+              </svg>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">RentScape</h1>
+            <p className="text-blue-200/80 mt-1 text-sm sm:text-base">Login faster — launch rentals sooner</p>
+          </div>
+
+          {/* Card */}
+          <div style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(24px)', borderRadius: '24px' }}
+            className="p-6 sm:p-8 shadow-2xl">
+
+            <div className="space-y-4">
+              <Link href="/login" className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-sky-500 hover:bg-sky-400">
+                Sign In
               </Link>
-              <Link href="/signup" className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50">
-                Signup
+
+              <Link href="/signup" className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all duration-200 border border-white/20 bg-white/10 hover:bg-white/15">
+                Create Account
               </Link>
             </div>
-          </div>
-          <div className="rounded-4xl bg-slate-50 p-8">
-            <div className="space-y-5">
-              <div className="h-48 rounded-[1.75rem] bg-white p-6 shadow-sm">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Dashboard ready</p>
-                <p className="mt-4 text-slate-700">Tenant and landlord shells, responsive sidebar, and card-based overview layouts are built.</p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-3xl bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-slate-900">Auth forms</p>
-                  <p className="mt-2 text-sm text-slate-600">Validation, loading state, and role selection ready for integration.</p>
-                </div>
-                <div className="rounded-3xl bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-slate-900">Skeleton UI</p>
-                  <p className="mt-2 text-sm text-slate-600">Empty-state cards show the structure even before data arrives.</p>
-                </div>
-              </div>
+
+            <div className="mt-6 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <p className="text-center text-blue-200/70 text-sm">
+                Tenant & Landlord Portal
+              </p>
             </div>
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }
