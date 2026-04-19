@@ -120,6 +120,26 @@ export async function GET(request: NextRequest) {
     const property_type = searchParams.get('property_type')
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const mine = searchParams.get('mine') === 'true'
+
+    // Get user session if mine=true
+    let user = null
+    let isLandlord = false
+    if (mine) {
+      user = await getSession()
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      const profileResult = await pool.query<{ role: string }>(
+        'SELECT role FROM public.profiles WHERE id = $1',
+        [user.id]
+      )
+      const profile = profileResult.rows[0]
+      if (!profile || profile.role !== 'landlord') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      isLandlord = true
+    }
 
     let query = `
       SELECT 
@@ -129,10 +149,22 @@ export async function GET(request: NextRequest) {
         ST_X(location::geometry) as lng,
         created_at
       FROM properties
-      WHERE status = 'active'
+      WHERE 1=1
     `
-    const params: (string | number)[] = []  // ✅ Fixed
+    const params: (string | number)[] = []
     let paramCount = 1
+
+    if (isLandlord && mine) {
+      // For landlord's own properties, no status filter
+    } else {
+      query += ` AND status = 'active'`
+    }
+
+    if (isLandlord && mine) {
+      query += ` AND landlord_id = $${paramCount}`
+      params.push(user!.id)
+      paramCount++
+    }
 
     if (city) {
       query += ` AND city = $${paramCount}`
@@ -156,7 +188,7 @@ export async function GET(request: NextRequest) {
       count: result.rows.length 
     })
 
-  } catch (err: unknown) {  // ✅ Fixed
+  } catch (err: unknown) {
     const error = err as Error
     console.error('GET /api/properties error:', error.message)
     return NextResponse.json({ error: 'Failed to fetch properties' }, { status: 500 })
