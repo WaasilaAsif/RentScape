@@ -50,6 +50,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/db'
+import { z } from 'zod'
+import { getSession } from '@/lib/get-session'
 
 export async function GET(
   request: NextRequest,
@@ -120,3 +122,148 @@ export async function GET(
   }
 }
 
+// app/api/properties/[id]/route.ts
+const updateSchema = z.object({
+  title: z.string().min(3).optional(),
+  description: z.string().optional(),
+  area: z.string().optional(),
+  address: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'under_maintenance']).optional(),
+  total_units: z.number().min(1).optional(),
+  max_occupants_per_unit: z.number().min(1).optional(),
+})
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // 1. Auth check
+    const user = await getSession()
+    console.log('🔍 Session user:', user) // ADD THIS
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 2. Get property ID from params
+    const { id } = await params
+    console.log('🔍 Property ID:', id) // ADD THIS
+
+    // 3. Check role
+    const roleResult = await pool.query<{ role: string }>(
+      'SELECT role FROM profiles WHERE id = $1',
+      [user.id]
+    )
+    console.log('🔍 Role result:', roleResult.rows[0]) // ADD THIS
+
+    if (roleResult.rows[0]?.role !== 'landlord') {
+      console.log('❌ Not a landlord') // ADD THIS
+      return NextResponse.json({ error: 'Only landlords can edit properties' }, { status: 403 })
+    }
+
+    // 4. Verify ownership
+    const ownerResult = await pool.query<{ landlord_id: string }>(
+      'SELECT landlord_id FROM properties WHERE id = $1',
+      [id]
+    )
+    console.log('🔍 Owner result:', ownerResult.rows[0]) // ADD THIS
+    console.log('🔍 Comparing:', { 
+      ownerLandlordId: ownerResult.rows[0]?.landlord_id, 
+      currentUserId: user.id,
+      match: ownerResult.rows[0]?.landlord_id === user.id 
+    }) // ADD THIS
+
+    if (!ownerResult.rows[0]) {
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    }
+
+    if (ownerResult.rows[0].landlord_id !== user.id) {
+      console.log('❌ Not the owner') // ADD THIS
+      return NextResponse.json({ error: 'You do not own this property' }, { status: 403 })
+    }
+
+    // ... rest of code
+    // 5. Parse and validate body
+    const body = await request.json()
+    const validated = updateSchema.parse(body)
+
+    // 6. Check for forbidden fields
+    const forbiddenFields = ['location', 'lat', 'lng', 'property_type', 'landlord_id', 'created_at']
+    for (const field of forbiddenFields) {
+      if (field in body) {
+        return NextResponse.json(
+          { error: `Cannot update '${field}'. Create a new property instead.` },
+          { status: 400 }
+        )
+      }
+    }
+
+    // 7. Build dynamic UPDATE query
+    const updates: string[] = []
+    const values: (string | number)[] = []
+    let paramCount = 1
+
+    if (validated.title !== undefined) {
+      updates.push(`title = $${paramCount++}`)
+      values.push(validated.title)
+    }
+    if (validated.description !== undefined) {
+      updates.push(`description = $${paramCount++}`)
+      values.push(validated.description)
+    }
+    if (validated.area !== undefined) {
+      updates.push(`area = $${paramCount++}`)
+      values.push(validated.area)
+    }
+    if (validated.address !== undefined) {
+      updates.push(`address = $${paramCount++}`)
+      values.push(validated.address)
+    }
+    if (validated.status !== undefined) {
+      updates.push(`status = $${paramCount++}`)
+      values.push(validated.status)
+    }
+    if (validated.total_units !== undefined) {
+      updates.push(`total_units = $${paramCount++}`)
+      values.push(validated.total_units)
+    }
+    if (validated.max_occupants_per_unit !== undefined) {
+      updates.push(`max_occupants_per_unit = $${paramCount++}`)
+      values.push(validated.max_occupants_per_unit)
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+
+    // 8. Execute update
+    const query = `
+      UPDATE properties 
+      SET ${updates.join(', ')}, updated_at = NOW()
+      WHERE id = $${paramCount}
+      RETURNING *,
+        ST_Y(location::geometry) as lat,
+        ST_X(location::geometry) as lng
+    `
+    values.push(id)
+
+    const result = await pool.query(query, values)
+
+    return NextResponse.json({ property: result.rows[0] }, { status: 200 })
+
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: err  },
+        { status: 400 }
+      )
+    }
+
+    const error = err as Error
+    console.error('PUT /api/properties/[id] error:', error.message)
+    return NextResponse.json(
+      { error: 'Failed to update property', message: error.message },
+      { status: 500 }
+    )
+  }
+}
