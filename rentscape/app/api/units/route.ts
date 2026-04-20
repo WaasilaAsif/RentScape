@@ -31,9 +31,7 @@ export async function GET (
 
 
         
-        const { id } = params
-        const body = await request.json()
-        const validated = unitSchema.parse(body)
+       
 
 
         
