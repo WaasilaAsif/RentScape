@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "./supabase-server"
 import { pool } from "./db"
 
-export type UserSession = {
+export type UserwithRole = {
   id: string
   email: string | undefined
   role: 'tenant' | 'landlord' | 'admin'
@@ -12,7 +12,7 @@ export type UserSession = {
  * Get authenticated user session with role
  * Tries JWT first (fast), falls back to database (for old users)
  */
-export async function getFullProfile(): Promise<UserSession | null> {
+export async function getUserWithRole(): Promise<UserwithRole | null> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -31,6 +31,7 @@ export async function getFullProfile(): Promise<UserSession | null> {
   }
 
   // Fallback to database (old users)
+  console.warn('User has no role in JWT, falling back to database:', user.id)
   try {
     const result = await pool.query<{ role: string; full_name: string }>(
       'SELECT role, full_name FROM profiles WHERE id = $1',

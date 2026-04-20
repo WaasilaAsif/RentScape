@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getFullProfile, UserSession } from './getFullProfile'
+import { getUserWithRole, UserwithRole } from './get-user-with-role'
 
 /**
  * Require landlord role
  * Usage: const user = await requireLandlord(); if (user instanceof NextResponse) return user;
  */
-export async function requireLandlord(): Promise<UserSession | NextResponse> {
-  const user = await getFullProfile()
+export async function requireLandlord(): Promise<UserwithRole | NextResponse> {
+  const user = await getUserWithRole()
   
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,8 +25,8 @@ export async function requireLandlord(): Promise<UserSession | NextResponse> {
 /**
  * Require tenant role
  */
-export async function requireTenant(): Promise<UserSession | NextResponse> {
-  const user = await getFullProfile()
+export async function requireTenant(): Promise<UserwithRole | NextResponse> {
+  const user = await getUserWithRole()
   
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -45,8 +45,8 @@ export async function requireTenant(): Promise<UserSession | NextResponse> {
 /**
  * Require admin role
  */
-export async function requireAdmin(): Promise<UserSession | NextResponse> {
-  const user = await getFullProfile()
+export async function requireAdmin(): Promise<UserwithRole | NextResponse> {
+  const user = await getUserWithRole()
   
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -65,8 +65,8 @@ export async function requireAdmin(): Promise<UserSession | NextResponse> {
 /**
  * Require any authenticated user
  */
-export async function requireAuth(): Promise<UserSession | NextResponse> {
-  const user = await getFullProfile()
+export async function requireAuth(): Promise<UserwithRole | NextResponse> {
+  const user = await getUserWithRole()
   
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
