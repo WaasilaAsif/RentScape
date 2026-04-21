@@ -129,3 +129,39 @@ export async function POST (request : NextRequest){
     )
 }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const propertyId = searchParams.get('property_id')
+    const availableOnly = searchParams.get('available_only') === 'true'
+
+    if (!propertyId) {
+      return NextResponse.json(
+        { error: 'property_id parameter is required' },
+        { status: 400 }
+      )
+    }
+
+    let query = 'SELECT * FROM units WHERE property_id = $1'
+    if (availableOnly) {
+      query += ' AND is_available = true'
+    }
+    query += ' ORDER BY unit_number'
+
+    const result = await pool.query(query, [propertyId])
+
+    return NextResponse.json({ 
+      units: result.rows,
+      count: result.rows.length 
+    })
+
+  } catch (err: unknown) {
+    const error = err as Error
+    console.error('GET /api/units error:', error.message)
+    return NextResponse.json(
+      { error: 'Failed to fetch units', message: error.message },
+      { status: 500 }
+    )
+  }
+}
