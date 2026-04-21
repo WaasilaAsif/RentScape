@@ -1,3 +1,5 @@
+//For now only get and post routes for units, we will add patch and delete later when we have the update and delete functionality in place for the units
+
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/db'
 import { z } from 'zod'
