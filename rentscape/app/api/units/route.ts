@@ -87,12 +87,13 @@ export async function POST (request : NextRequest){
         advance_months,
         max_occupants,
         description,
-        is_available,
-        status
+        is_available
+        
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, 'available')
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 , true)
         RETURNING id
-        `,
+        `
+        ,
         [
             validated.property_id,
             validated.unit_number,
