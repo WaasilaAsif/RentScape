@@ -134,7 +134,7 @@ const updateSchema = z.object({
 })
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Auth check
@@ -272,7 +272,7 @@ export async function PUT(
 // delete funtion
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Auth check
