@@ -52,3 +52,11 @@ And after all the integrations I will merge with main as well.
 ### Log 4
 
 Ok so basically I created the user schemas as types for typescript this ensures validation and correct way tpo maintain stuff without any errors.
+
+
+## Aman Logs
+tested units,properties and maintainance apis
+one concern about the naming of logout route file changed it from rout.ts to route.ts and now it works
+tested payments
+
+fixed the dang sign up issue, there was an email col added in the function when there's none in the profiles table also the before insert trigger had an issue so i made another function for that
