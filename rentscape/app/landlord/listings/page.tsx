@@ -1,11 +1,13 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Card } from '@/components/ui/Card'
 import { Topbar } from '@/components/dashboard/Topbar'
 import PropertyCard from '@/components/property-card'
-import PropertyMap from '@/components/map'
+
+const PropertyMap = dynamic(() => import('@/components/map'), { ssr: false })
 
 type Property = {
   id: string

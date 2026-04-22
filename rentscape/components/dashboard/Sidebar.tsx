@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 type DashboardRole = "tenant" | "landlord";
@@ -32,17 +31,16 @@ interface SidebarProps {
 }
 
 export function Sidebar({ role }: SidebarProps) {
-  const { data: session, status } = useSession();
   const [properties, setProperties] = useState<Property[]>([]);
 
   useEffect(() => {
-    if (role === "landlord" && session && status === "authenticated") {
+    if (role === "landlord") {
       fetch("/api/properties?mine=true")
         .then((res) => res.json())
         .then((data) => setProperties(data.properties || []))
         .catch((err) => console.error("Failed to fetch properties", err));
     }
-  }, [role, session, status]);
+  }, [role]);
 
   return (
     <aside className="hidden w-72 shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">

@@ -1,3 +1,4 @@
+//Can be changed refer Day 3
 // @/lib/supabase-server.ts
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
