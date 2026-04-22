@@ -1,5 +1,4 @@
 // __tests__/api/properties/[id].test.ts
-
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
 /**
  * Integration tests for PUT /api/properties/[id]
