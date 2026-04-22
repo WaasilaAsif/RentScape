@@ -21,7 +21,9 @@ const leaseSchema = z.object({
     relation: z.string()
   })).optional()
 })
-
+//Need to add this val;lidation 
+// SELECT 1 FROM leases 
+// WHERE unit_id = $1 AND status = 'active'
 export async function POST(request: NextRequest) {
   try {
     // 1. Auth check - only landlords can create leases
