@@ -93,8 +93,29 @@ export async function POST(request: NextRequest) {
       ]
     )
 
+    const createdProperty = insertResult.rows[0]
+
+    // Optional: create an initial unit so rent appears in cards/list pages.
+    if (typeof data.monthly_rent === 'number') {
+      await pool.query(
+        `
+        INSERT INTO units (
+          property_id,
+          unit_number,
+          monthly_rent,
+          bedrooms,
+          bathrooms,
+          max_occupants,
+          is_available
+        )
+        VALUES ($1::uuid, $2, $3, 1, 1, 1, true)
+        `,
+        [createdProperty.id, '1', data.monthly_rent]
+      )
+    }
+
     // 5. Success! Return the created property as JSON
-    return NextResponse.json({ property: insertResult.rows[0] }, { status: 201 })
+    return NextResponse.json({ property: createdProperty }, { status: 201 })
 
   }catch (err) {
     // We treat 'err' as unknown for type safety
@@ -117,9 +138,31 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const city = searchParams.get('city')
+    const area = searchParams.get('area')
     const property_type = searchParams.get('property_type')
+    const q = searchParams.get('q')
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const mine = searchParams.get('mine') === 'true'
+
+    // Get user session if mine=true
+    let user = null
+    let isLandlord = false
+    if (mine) {
+      user = await getSession()
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      const profileResult = await pool.query<{ role: string }>(
+        'SELECT role FROM public.profiles WHERE id = $1',
+        [user.id]
+      )
+      const profile = profileResult.rows[0]
+      if (!profile || profile.role !== 'landlord') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      isLandlord = true
+    }
 
     let query = `
       SELECT 
@@ -127,16 +170,50 @@ export async function GET(request: NextRequest) {
         total_units, max_occupants_per_unit, status,
         ST_Y(location::geometry) as lat,
         ST_X(location::geometry) as lng,
+        (
+          SELECT MIN(u.monthly_rent)::float
+          FROM units u
+          WHERE u.property_id = properties.id
+        ) as min_rent,
+        (
+          SELECT MAX(u.monthly_rent)::float
+          FROM units u
+          WHERE u.property_id = properties.id
+        ) as max_rent,
         created_at
       FROM properties
-      WHERE status = 'active'
+      WHERE 1=1
     `
-    const params: (string | number)[] = []  // ✅ Fixed
+    const params: (string | number)[] = []
     let paramCount = 1
+
+    if (isLandlord && mine) {
+      // For landlord's own properties, no status filter
+    } else {
+      query += ` AND status = 'active'`
+    }
+
+    if (isLandlord && mine) {
+      query += ` AND landlord_id = $${paramCount}`
+      params.push(user!.id)
+      paramCount++
+    }
 
     if (city) {
       query += ` AND city = $${paramCount}`
       params.push(city)
+      paramCount++
+    }
+
+    if (area) {
+      query += ` AND area ILIKE $${paramCount}`
+      params.push(`%${area}%`)
+      paramCount++
+    }
+
+    if (q) {
+      query += ` AND (city ILIKE $${paramCount} OR COALESCE(area, '') ILIKE $${paramCount})`
+      params.push(`%${q}%`)
       paramCount++
     }
 
@@ -156,7 +233,7 @@ export async function GET(request: NextRequest) {
       count: result.rows.length 
     })
 
-  } catch (err: unknown) {  // ✅ Fixed
+  } catch (err: unknown) {
     const error = err as Error
     console.error('GET /api/properties error:', error.message)
     return NextResponse.json({ error: 'Failed to fetch properties' }, { status: 500 })
