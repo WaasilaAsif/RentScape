@@ -338,6 +338,7 @@ export async function DELETE(
       ,
       [id]
     )
+    return NextResponse.json({ message: 'Property deleted successfully' }, { status: 200 })
   } catch (err) {
     const error = err as Error
     console.error('DELETE /api/properties/[id] error:', error.message)
