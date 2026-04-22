@@ -147,17 +147,17 @@ export async function PUT(
 
     // 2. Get property ID from params
     const { id } = await params
-    console.log('🔍 Property ID:', id) // ADD THIS
+    console.log('Property ID:', id) // ADD THIS
 
     // 3. Check role
     const roleResult = await pool.query<{ role: string }>(
       'SELECT role FROM profiles WHERE id = $1',
       [user.id]
     )
-    console.log('🔍 Role result:', roleResult.rows[0]) // ADD THIS
+    console.log(' Role result:', roleResult.rows[0]) // ADD THIS
 
     if (roleResult.rows[0]?.role !== 'landlord') {
-      console.log('❌ Not a landlord') // ADD THIS
+      console.log(' Not a landlord') // ADD THIS
       return NextResponse.json({ error: 'Only landlords can edit properties' }, { status: 403 })
     }
 
@@ -166,8 +166,8 @@ export async function PUT(
       'SELECT landlord_id FROM properties WHERE id = $1',
       [id]
     )
-    console.log('🔍 Owner result:', ownerResult.rows[0]) // ADD THIS
-    console.log('🔍 Comparing:', { 
+    console.log('Owner result:', ownerResult.rows[0]) // ADD THIS
+    console.log('Comparing:', { 
       ownerLandlordId: ownerResult.rows[0]?.landlord_id, 
       currentUserId: user.id,
       match: ownerResult.rows[0]?.landlord_id === user.id 
@@ -178,7 +178,7 @@ export async function PUT(
     }
 
     if (ownerResult.rows[0].landlord_id !== user.id) {
-      console.log('❌ Not the owner') // ADD THIS
+      console.log(' Not the owner') // ADD THIS
       return NextResponse.json({ error: 'You do not own this property' }, { status: 403 })
     }
 
@@ -338,6 +338,9 @@ export async function DELETE(
       ,
       [id]
     )
+    //dO WE ACTUALLY NEED RETURN RESPONSE HERE?
+    // Do we want the next respomse line at all? Maybe just return a 204 no content?
+    //return NextResponse.json({ message: 'Property marked as inactive successfully' }, { status: 200 })
     return NextResponse.json({ message: 'Property deleted successfully' }, { status: 200 })
   } catch (err) {
     const error = err as Error
