@@ -99,9 +99,9 @@ export async function POST (request : NextRequest){
         [
             validated.property_id,
             validated.unit_number,
-            validated.floor,
             validated.bedrooms,
             validated.bathrooms,
+            validated.floor, //rearranged the order
             validated.monthly_rent,
             // validated.is_furnished,
             validated.advance_required,
