@@ -48,3 +48,4 @@ Thumbs.db
 # Logs, Vercel local state, and OS/IDE noise files
 
 #trak logs.md
+!docs/
