@@ -17,7 +17,10 @@ const playfair = Playfair_Display({
 })
 
 type Role = 'tenant' | 'landlord'
-
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 export default function AdminAuthSlider() {
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(true)
@@ -36,10 +39,7 @@ export default function AdminAuthSlider() {
     confirm_password: '',
   })
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
