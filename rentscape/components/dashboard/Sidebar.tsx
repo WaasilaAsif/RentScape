@@ -17,10 +17,11 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string; sub?:
     { label: "Search", href: "/tenant/search" },
   ],
   landlord: [
-    { label: "Dashboard", href: "/landlord/dashboard" },
-    { label: "Listings", href: "/landlord/listings" },
-    { label: "Leases", href: "/landlord/leases" },
-    { label: "Payments", href: "/landlord/payments" },
+  { label: "Dashboard", href: "/landlord" },
+  { label: "Listings", href: "/landlord/listings" },
+  { label: "Leases", href: "/landlord/leases" },
+  { label: "Maintenance", href: "/landlord/maintenance" }, 
+  { label: "Payments", href: "/landlord/payments" },
   ],
 };
 
