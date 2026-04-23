@@ -47,6 +47,10 @@ export async function GET(request: NextRequest) {
         pay.paid_date,
         pay.status,
         pay.notes,
+        CASE
+          WHEN pay.notes LIKE '%TENANT_CONFIRMED_AT=%' THEN true
+          ELSE false
+        END as tenant_confirmed,
         pay.created_at,
         l.tenant_id,
         l.start_date,
