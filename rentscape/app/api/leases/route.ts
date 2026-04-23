@@ -187,41 +187,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (user.role !== 'landlord') {
-      return NextResponse.json(
-        { error: 'Only landlords can view leases' },
-        { status: 403 }
+    let result;
+
+    if (user.role === 'landlord') {
+      result = await pool.query(
+        `SELECT 
+          l.id, l.unit_id, l.tenant_id, l.monthly_rent, 
+          l.start_date, l.end_date, l.status, l.created_at,
+          u.unit_number,
+          p.title as property_title,
+          prof.full_name as tenant_name
+         FROM leases l
+         JOIN units u ON l.unit_id = u.id
+         JOIN properties p ON u.property_id = p.id
+         JOIN profiles prof ON l.tenant_id = prof.id
+         WHERE p.landlord_id = $1
+         ORDER BY l.created_at DESC`,
+        [user.id]
       )
+    } else if (user.role === 'tenant') {
+      result = await pool.query(
+        `SELECT 
+          l.id, l.unit_id, l.tenant_id, l.monthly_rent,
+          l.start_date, l.end_date, l.status, l.created_at,
+          u.unit_number,
+          p.title as property_title
+         FROM leases l
+         JOIN units u ON l.unit_id = u.id
+         JOIN properties p ON u.property_id = p.id
+         WHERE l.tenant_id = $1 AND l.status = 'active'
+         ORDER BY l.created_at DESC`,
+        [user.id]
+      )
+    } else {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 403 })
     }
 
-    // Query all leases for properties owned by this landlord
-    // Joins multiple tables to get readable data
-    const result = await pool.query(
-      `SELECT 
-        l.id, 
-        l.unit_id, 
-        l.tenant_id, 
-        l.monthly_rent, 
-        l.start_date, 
-        l.end_date, 
-        l.status, 
-        l.created_at,
-        u.unit_number,
-        p.title as property_title,
-        prof.full_name as tenant_name
-       FROM leases l
-       JOIN units u ON l.unit_id = u.id
-       JOIN properties p ON u.property_id = p.id
-       JOIN profiles prof ON l.tenant_id = prof.id
-       WHERE p.landlord_id = $1
-       ORDER BY l.created_at DESC`,
-      [user.id]
-    )
-
-    return NextResponse.json({ 
-      leases: result.rows,
-      count: result.rows.length 
-    })
+    return NextResponse.json({ leases: result.rows, count: result.rows.length })
 
   } catch (err: unknown) {
     const error = err as Error
