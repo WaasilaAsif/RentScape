@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 
 export type CurrentUser = {
