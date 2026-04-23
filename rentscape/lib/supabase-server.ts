@@ -7,10 +7,16 @@ import { cookies } from 'next/headers'
 // ✅ Server client: respects RLS, uses user's session
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim()
+  const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim()
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase URL or anon key is missing from environment variables.')
+  }
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -31,8 +37,15 @@ export async function createSupabaseServerClient() {
 }
 // ✅ Admin client: bypasses RLS — USE WITH CAUTION
 export function createSupabaseAdminClient() {
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim()
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim()
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Supabase admin credentials are missing from environment variables.')
+  }
+
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // 🔐 Never expose this!
+    supabaseUrl,
+    serviceRoleKey // Never expose this key in the browser.
   )
 }
