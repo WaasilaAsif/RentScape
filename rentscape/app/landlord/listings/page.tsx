@@ -203,7 +203,22 @@ export default function ListingsPage() {
 
           <Card title="Your Properties" description="Only your own listings">
             {loading ? (
-              <p className="text-slate-600">Loading properties...</p>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-blue-200/40 bg-white p-4 shadow-sm"
+                  >
+                    <div className="mb-4 h-32 w-full animate-pulse rounded-xl bg-slate-200/70" />
+                    <div className="h-5 w-3/4 animate-pulse rounded bg-slate-200/70" />
+                    <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-slate-200/70" />
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="h-7 w-20 animate-pulse rounded-full bg-slate-200/70" />
+                      <div className="h-5 w-24 animate-pulse rounded bg-slate-200/70" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : properties.length === 0 ? (
               <p className="text-slate-600">No properties listed yet.</p>
             ) : (

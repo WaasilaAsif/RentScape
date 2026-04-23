@@ -117,13 +117,25 @@ export default function TenantDashboard() {
 
           <div className="grid gap-6 md:grid-cols-3">
             <Card title="Available Listings" description="Currently active properties">
-              <p className="text-4xl font-bold text-blue-600">{properties.length}</p>
+              {loading ? (
+                <div className="h-10 w-20 animate-pulse rounded-xl bg-blue-200/60" />
+              ) : (
+                <p className="text-4xl font-bold text-blue-600">{properties.length}</p>
+              )}
             </Card>
             <Card title="Shown on Map" description="Listings after filters">
-              <p className="text-4xl font-bold text-indigo-600">{filteredProperties.length}</p>
+              {loading ? (
+                <div className="h-10 w-20 animate-pulse rounded-xl bg-indigo-200/60" />
+              ) : (
+                <p className="text-4xl font-bold text-indigo-600">{filteredProperties.length}</p>
+              )}
             </Card>
             <Card title="Map Markers" description="Listings with valid coordinates">
-              <p className="text-4xl font-bold text-cyan-600">{markers.length}</p>
+              {loading ? (
+                <div className="h-10 w-20 animate-pulse rounded-xl bg-cyan-200/60" />
+              ) : (
+                <p className="text-4xl font-bold text-cyan-600">{markers.length}</p>
+              )}
             </Card>
           </div>
 
