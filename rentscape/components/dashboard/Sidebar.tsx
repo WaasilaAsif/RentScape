@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type DashboardRole = "tenant" | "landlord";
@@ -33,10 +32,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ role }: SidebarProps) {
-  const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [logoutError, setLogoutError] = useState<string | null>(null);
   const { user, isLoading: userLoading } = useCurrentUser();
 
   const userName = useMemo(() => {
@@ -52,24 +48,6 @@ export function Sidebar({ role }: SidebarProps) {
         .catch((err) => console.error("Failed to fetch properties", err));
     }
   }, [role]);
-
-  async function handleLogout() {
-    setLoggingOut(true);
-    setLogoutError(null);
-    try {
-      const response = await fetch("/api/auth/logout", { method: "POST" });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || payload?.message || "Logout failed.");
-      }
-      router.push("/login");
-      router.refresh();
-    } catch (err) {
-      setLogoutError(err instanceof Error ? err.message : "Logout failed.");
-    } finally {
-      setLoggingOut(false);
-    }
-  }
 
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">
@@ -136,19 +114,6 @@ export function Sidebar({ role }: SidebarProps) {
         )}
       </div>
 
-      <div className="space-y-2">
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="w-full rounded-xl border border-blue-200/60 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-100/70 disabled:opacity-60"
-        >
-          {loggingOut ? "Logging out..." : "Logout"}
-        </button>
-        {logoutError ? (
-          <p className="text-xs text-rose-600">{logoutError}</p>
-        ) : null}
-      </div>
     </aside>
   );
 }
