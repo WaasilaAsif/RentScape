@@ -75,6 +75,13 @@ export default function TenantDashboard() {
     }
   }, [])
 
+  const resetSearch = useCallback(() => {
+    setSearchQuery('')
+    setTypeFilter('all')
+    syncFiltersToUrl('', 'all')
+    loadProperties('', 'all')
+  }, [loadProperties, syncFiltersToUrl])
+
   useEffect(() => {
     const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
     const q = params.get('q') ?? ''
@@ -137,7 +144,12 @@ export default function TenantDashboard() {
     <DashboardShell role="tenant">
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
         <div className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
-          <Topbar title="Tenant overview" subtitle="Discover rentals by area and property type" />
+          <Topbar
+            title="Tenant overview"
+            subtitle="Discover rentals by area and property type"
+            actionLabel="Reset Search"
+            onAction={resetSearch}
+          />
           {hasPendingLease ? (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
               You have a pending lease offer.{' '}
@@ -194,6 +206,7 @@ export default function TenantDashboard() {
                     const nextQuery = e.target.value
                     setSearchQuery(nextQuery)
                     syncFiltersToUrl(nextQuery, typeFilter)
+                    loadProperties(nextQuery, typeFilter)
                   }}
                   placeholder="e.g. Islamabad or Blue Heights"
                   className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-400 focus:outline-none"
@@ -207,6 +220,7 @@ export default function TenantDashboard() {
                     const nextType = e.target.value
                     setTypeFilter(nextType)
                     syncFiltersToUrl(searchQuery, nextType)
+                    loadProperties(searchQuery, nextType)
                   }}
                   className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-400 focus:outline-none"
                 >
