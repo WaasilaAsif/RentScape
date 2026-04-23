@@ -84,3 +84,10 @@ export function useCurrentUser() {
   return { ...store, refresh }
 }
 
+// to reset user after logout
+export function resetCurrentUser() {
+  snapshot = { user: null, isLoading: true, error: null }
+  inFlight = null
+  emit()
+  void fetchMe()
+}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { resetCurrentUser } from "@/hooks/useCurrentUser";
 
 type DashboardRole = "tenant" | "landlord";
 
@@ -45,6 +46,9 @@ export function Sidebar({ role }: SidebarProps) {
   }, [user]);
 
   useEffect(() => {
+  console.log("user object:", user);
+}, [user]);
+  useEffect(() => {
     if (role === "landlord") {
       fetch("/api/properties?mine=true")
         .then((res) => res.json())
@@ -62,6 +66,7 @@ export function Sidebar({ role }: SidebarProps) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error || payload?.message || "Logout failed.");
       }
+      resetCurrentUser(); // clears the stale user before redirect
       router.push("/login");
       router.refresh();
     } catch (err) {
