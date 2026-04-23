@@ -9,6 +9,8 @@ type DashboardRole = "tenant" | "landlord";
 const navItems: Record<DashboardRole, Array<{ label: string; href: string; sub?: string }>> = {
   tenant: [
     { label: "Dashboard", href: "/tenant" },
+    { label: "Leases", href: "/tenant/leases" },
+    { label: "Payments", href: "/tenant/payments" },
     { label: "Maintenance", href: "/tenant/maintenance" },
     { label: "Search", href: "/tenant/search" },
   ],
