@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type DashboardRole = "tenant" | "landlord";
@@ -34,7 +35,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ role }: SidebarProps) {
+  const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
+  const [loggingOut, setLoggingOut] = useState(false);
   const { user, isLoading: userLoading } = useCurrentUser();
 
   const userName = useMemo(() => {
@@ -50,6 +53,17 @@ export function Sidebar({ role }: SidebarProps) {
         .catch((err) => console.error("Failed to fetch properties", err));
     }
   }, [role]);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">
@@ -115,6 +129,15 @@ export function Sidebar({ role }: SidebarProps) {
           </p>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={loggingOut}
+        className="w-full rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-100/70 disabled:opacity-60"
+      >
+        {loggingOut ? "Logging out..." : "Logout"}
+      </button>
 
     </aside>
   );
