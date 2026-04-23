@@ -41,6 +41,16 @@ export default function AdminAuthSlider() {
     confirm_password: '',
   })
 
+  const switchToSignIn = () => {
+    setIsSignUp(false)
+    setError(null)
+  }
+
+  const switchToSignUp = () => {
+    setIsSignUp(true)
+    setError(null)
+  }
+
 
 
   async function handleLogin(e: FormEvent) {
@@ -669,7 +679,7 @@ export default function AdminAuthSlider() {
             role="tab"
             aria-selected={!isSignUp}
             className={!isSignUp ? 'active' : ''}
-            onClick={() => setIsSignUp(false)}
+            onClick={switchToSignIn}
           >
             Sign In
           </button>
@@ -678,7 +688,7 @@ export default function AdminAuthSlider() {
             role="tab"
             aria-selected={isSignUp}
             className={isSignUp ? 'active' : ''}
-            onClick={() => setIsSignUp(true)}
+            onClick={switchToSignUp}
           >
             Sign Up
           </button>
@@ -695,7 +705,10 @@ export default function AdminAuthSlider() {
                 <select
                   className="input"
                   value={signupForm.role}
-                  onChange={e => setSignupForm({ ...signupForm, role: e.target.value as Role })}
+                  onChange={e => {
+                    setError(null)
+                    setSignupForm({ ...signupForm, role: e.target.value as Role })
+                  }}
                 >
                   <option value="tenant">Tenant</option>
                   <option value="landlord">Landlord</option>
@@ -707,7 +720,10 @@ export default function AdminAuthSlider() {
                   className="input"
                   type="text"
                   value={signupForm.full_name}
-                  onChange={e => setSignupForm({ ...signupForm, full_name: e.target.value })}
+                  onChange={e => {
+                    setError(null)
+                    setSignupForm({ ...signupForm, full_name: e.target.value })
+                  }}
                   placeholder="Enter your full name"
                   required
                 />
@@ -718,7 +734,10 @@ export default function AdminAuthSlider() {
                   className="input"
                   type="email"
                   value={signupForm.email}
-                  onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
+                  onChange={e => {
+                    setError(null)
+                    setSignupForm({ ...signupForm, email: e.target.value })
+                  }}
                   placeholder="you@example.com"
                   required
                 />
@@ -730,7 +749,10 @@ export default function AdminAuthSlider() {
                     className="input"
                     type={showSignupPassword ? 'text' : 'password'}
                     value={signupForm.password}
-                    onChange={e => setSignupForm({ ...signupForm, password: e.target.value })}
+                    onChange={e => {
+                      setError(null)
+                      setSignupForm({ ...signupForm, password: e.target.value })
+                    }}
                     placeholder="Minimum 8 characters"
                     required
                   />
@@ -750,7 +772,10 @@ export default function AdminAuthSlider() {
                     className="input"
                     type={showConfirm ? 'text' : 'password'}
                     value={signupForm.confirm_password}
-                    onChange={e => setSignupForm({ ...signupForm, confirm_password: e.target.value })}
+                    onChange={e => {
+                      setError(null)
+                      setSignupForm({ ...signupForm, confirm_password: e.target.value })
+                    }}
                     placeholder="Confirm your password"
                     required
                   />
@@ -783,7 +808,10 @@ export default function AdminAuthSlider() {
                   className="input"
                   type="email"
                   value={loginForm.email}
-                  onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+                  onChange={e => {
+                    setError(null)
+                    setLoginForm({ ...loginForm, email: e.target.value })
+                  }}
                   placeholder="you@example.com"
                   required
                 />
@@ -795,7 +823,10 @@ export default function AdminAuthSlider() {
                     className="input"
                     type={showLoginPassword ? 'text' : 'password'}
                     value={loginForm.password}
-                    onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                    onChange={e => {
+                      setError(null)
+                      setLoginForm({ ...loginForm, password: e.target.value })
+                    }}
                     placeholder="••••••••"
                     required
                   />
@@ -822,7 +853,7 @@ export default function AdminAuthSlider() {
               <span>Welcome back</span>
               <h2>Already registered?</h2>
               <p>Sign in and continue managing your rentals with a premium dashboard experience.</p>
-              <button className="overlay-button" onClick={() => setIsSignUp(false)}>
+              <button className="overlay-button" onClick={switchToSignIn}>
                 Sign In
               </button>
             </div>
@@ -830,7 +861,7 @@ export default function AdminAuthSlider() {
               <span>New here</span>
               <h2>Create an account</h2>
               <p>Join RentScape and unlock advanced leasing, payment, and maintenance workflows.</p>
-              <button className="overlay-button" onClick={() => setIsSignUp(true)}>
+              <button className="overlay-button" onClick={switchToSignUp}>
                 Sign Up
               </button>
             </div>
