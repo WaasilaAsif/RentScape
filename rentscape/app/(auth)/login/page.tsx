@@ -17,11 +17,13 @@ const playfair = Playfair_Display({
 })
 
 type Role = 'tenant' | 'landlord'
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 export default function AdminAuthSlider() {
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim()
+  const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim()
+  const supabase =
+    supabaseUrl && supabaseAnonKey
+      ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+      : null
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -43,6 +45,10 @@ export default function AdminAuthSlider() {
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
+    if (!supabase) {
+      setError('Supabase client is not configured. Please check frontend environment variables.')
+      return
+    }
     const email = loginForm.email.trim()
     const password = loginForm.password
 
@@ -62,20 +68,32 @@ export default function AdminAuthSlider() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+    if (userError || !user) {
+      setError(userError?.message ?? 'User session was not initialized. Please sign in again.')
+      setLoading(false)
+      return
     }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    setLoading(false)
+    router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
   }
 
   async function handleSignup(e: FormEvent) {
     e.preventDefault()
+    if (!supabase) {
+      setError('Supabase client is not configured. Please check frontend environment variables.')
+      return
+    }
 
     if (signupForm.password !== signupForm.confirm_password) {
       setError('Passwords do not match.')
@@ -140,7 +158,8 @@ export default function AdminAuthSlider() {
           display: block;
           width: 100%;
           max-width: none;
-          min-height: min(100vh, 100dvh);
+          min-height: 100vh;
+          min-height: 100dvh;
           pointer-events: none;
           visibility: hidden;
         }
@@ -153,7 +172,8 @@ export default function AdminAuthSlider() {
           max-width: none;
           margin-left: auto;
           margin-right: auto;
-          min-height: min(100vh, 100dvh);
+          min-height: 100vh;
+          min-height: 100dvh;
           border-radius: 0;
           overflow: hidden;
           background: rgba(5, 15, 26, 0.35);

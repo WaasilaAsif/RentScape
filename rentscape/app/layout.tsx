@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next"; // 1. Added Viewport type
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -13,15 +13,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// 2. Add this Viewport configuration
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
 };
 
 export const metadata: Metadata = {
-  title: "RentScape", // 3. Bonus: Changed the title from 'Create Next App'
+  title: "RentScape",
   description: "Your property management solution",
+  icons: {
+    icon: "/icon",
+  },
 };
 
 export default function RootLayout({
