@@ -95,7 +95,7 @@ export function Sidebar({ role }: SidebarProps) {
               {properties.map((prop) => (
                 <li key={prop.id}>
                   <Link
-                    href={`/landlord/listings/${prop.id}`}
+                    href={`/properties/${prop.id}`}
                     className="block rounded-lg px-3 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-200/50 hover:text-blue-900 truncate"
                   >
                     {prop.title} - {prop.city}
