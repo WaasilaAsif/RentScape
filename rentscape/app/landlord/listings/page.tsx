@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Card } from '@/components/ui/Card'
 import { Topbar } from '@/components/dashboard/Topbar'
 import PropertyCard from '@/components/property-card'
+import { toast } from 'sonner'
 
 const PropertyMap = dynamic(() => import('@/components/map'), { ssr: false })
 
@@ -92,9 +93,11 @@ export default function ListingsPage() {
 
       setForm(initialForm)
       await loadMyProperties()
+      toast.success('Property listed successfully!')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong'
       setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -107,7 +110,7 @@ export default function ListingsPage() {
           <Topbar title="Properties Listings" subtitle="Manage your properties and create new listings" />
 
           <Card title="Create Property" description="Add a listing with location and starting rent">
-            <form onSubmit={handleCreateProperty} className="grid gap-4 md:grid-cols-2">
+            <form onSubmit={handleCreateProperty} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <input
                 className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
                 placeholder="Title"
@@ -148,7 +151,7 @@ export default function ListingsPage() {
                 onChange={e => setForm({ ...form, monthly_rent: e.target.value })}
                 required
               />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
                   type="number"
                   step="any"
