@@ -12,6 +12,7 @@ type Payment = {
   due_date: string
   paid_date: string | null
   status: 'pending' | 'paid' | 'overdue' | 'waived'
+  tenant_confirmed?: boolean
   property_title: string
 }
 
@@ -123,11 +124,16 @@ export default function PaymentsPage() {
                           <button
                             type="button"
                             onClick={() => markAsPaid(payment.id)}
-                            disabled={markingPaymentId === payment.id}
+                            disabled={markingPaymentId === payment.id || !payment.tenant_confirmed}
                             className="block rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
                           >
-                            {markingPaymentId === payment.id ? 'Saving...' : 'Mark Paid'}
+                            {markingPaymentId === payment.id ? 'Saving...' : 'Finalize Payment'}
                           </button>
+                        ) : null}
+                        {(payment.status === 'pending' || payment.status === 'overdue') && !payment.tenant_confirmed ? (
+                          <span className="inline-block rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+                            Awaiting tenant confirmation
+                          </span>
                         ) : null}
                       </div>
                     </div>

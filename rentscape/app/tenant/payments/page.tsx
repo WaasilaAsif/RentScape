@@ -12,6 +12,7 @@ type Payment = {
   due_date: string
   paid_date: string | null
   status: 'pending' | 'paid' | 'overdue' | 'waived'
+  tenant_confirmed?: boolean
   property_title: string
   property_city: string
 }
@@ -46,11 +47,11 @@ export default function TenantPaymentsPage() {
       const response = await fetch(`/api/payments/${paymentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'paid' }),
+        body: JSON.stringify({ status: 'tenant_confirmed' }),
       })
       const payload = await response.json().catch(() => null)
       if (!response.ok) throw new Error(payload?.error || payload?.message || 'Failed to confirm payment')
-      toast.success('Payment successful!')
+      toast.success('Payment confirmation sent to landlord')
       await loadPayments()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to confirm payment')
@@ -118,15 +119,20 @@ export default function TenantPaymentsPage() {
                         >
                           {payment.status}
                         </span>
-                        {(payment.status === 'pending' || payment.status === 'overdue') ? (
+                        {(payment.status === 'pending' || payment.status === 'overdue') && !payment.tenant_confirmed ? (
                           <button
                             type="button"
                             onClick={() => confirmPayment(payment.id)}
                             disabled={payingId === payment.id}
                             className="block rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
                           >
-                            {payingId === payment.id ? 'Processing...' : 'Confirm Payment'}
+                            {payingId === payment.id ? 'Sending...' : 'Confirm Payment'}
                           </button>
+                        ) : null}
+                        {(payment.status === 'pending' || payment.status === 'overdue') && payment.tenant_confirmed ? (
+                          <span className="inline-block rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+                            Awaiting landlord approval
+                          </span>
                         ) : null}
                       </div>
                     </div>
