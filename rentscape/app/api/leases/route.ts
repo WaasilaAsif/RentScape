@@ -21,6 +21,14 @@ const leaseSchema = z.object({
     relation: z.string()
   })).optional()
 })
+
+const draftLeaseSchema = z.object({
+  property_id: z.string().uuid(),
+  tenant_email: z.string().email(),
+  monthly_rent: z.number().min(1),
+  start_date: z.string(),
+  end_date: z.string(),
+})
 //Need to add this val;lidation 
 // SELECT 1 FROM leases 
 // WHERE unit_id = $1 AND status = 'active'
@@ -39,8 +47,73 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Validate input
     const body = await request.json()
+    const draftParsed = draftLeaseSchema.safeParse(body)
+
+    // Draft lease flow from landlord property card modal.
+    if (draftParsed.success) {
+      const draft = draftParsed.data
+
+      const tenantResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM auth.users
+         WHERE lower(email) = lower($1)
+         LIMIT 1`,
+        [draft.tenant_email]
+      )
+
+      if (!tenantResult.rows[0]) {
+        return NextResponse.json({ error: 'Tenant email not found' }, { status: 404 })
+      }
+
+      const tenantId = tenantResult.rows[0].id
+
+      const unitResult = await pool.query<{ id: string; monthly_rent: string; landlord_id: string }>(
+        `SELECT u.id, u.monthly_rent, p.landlord_id
+         FROM units u
+         JOIN properties p ON u.property_id = p.id
+         WHERE u.property_id = $1
+           AND u.is_available = true
+         ORDER BY u.created_at ASC
+         LIMIT 1`,
+        [draft.property_id]
+      )
+
+      if (!unitResult.rows[0]) {
+        return NextResponse.json({ error: 'No available unit found for this property' }, { status: 409 })
+      }
+
+      if (unitResult.rows[0].landlord_id !== user.id) {
+        return NextResponse.json({ error: 'You do not own this property' }, { status: 403 })
+      }
+
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+
+        const leaseResult = await client.query(
+          `INSERT INTO leases (
+            unit_id, tenant_id, monthly_rent, advance_amount,
+            start_date, end_date, status, is_family, occupant_count
+          )
+          VALUES ($1, $2, $3, 0, $4, $5, 'pending', false, 1)
+          RETURNING *`,
+          [unitResult.rows[0].id, tenantId, draft.monthly_rent, draft.start_date, draft.end_date]
+        )
+
+        await client.query('UPDATE units SET is_available = false WHERE id = $1', [unitResult.rows[0].id])
+        await client.query('COMMIT')
+
+        return NextResponse.json({ lease: leaseResult.rows[0] }, { status: 201 })
+      } catch (err) {
+        await client.query('ROLLBACK')
+        throw err
+      } finally {
+        client.release()
+      }
+    }
+
+    // 2. Validate legacy unit-based lease input
     const validated = leaseSchema.parse(body)
 
     // 3. Verify unit exists and get details (property ownership, availability, max_occupants)
@@ -187,36 +260,63 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (user.role !== 'landlord') {
+    const status = request.nextUrl.searchParams.get('status')
+
+    let result
+    if (user.role === 'landlord') {
+      // Query all leases for properties owned by this landlord
+      result = await pool.query(
+        `SELECT 
+          l.id, 
+          l.unit_id, 
+          l.tenant_id, 
+          l.monthly_rent, 
+          l.start_date, 
+          l.end_date, 
+          l.status, 
+          l.created_at,
+          u.unit_number,
+          p.title as property_title,
+          prof.full_name as tenant_name
+         FROM leases l
+         JOIN units u ON l.unit_id = u.id
+         JOIN properties p ON u.property_id = p.id
+         JOIN profiles prof ON l.tenant_id = prof.id
+         WHERE p.landlord_id = $1
+           ${status ? `AND l.status = $2::lease_status` : ''}
+         ORDER BY l.created_at DESC`,
+        status ? [user.id, status] : [user.id]
+      )
+    } else if (user.role === 'tenant') {
+      // Query leases where logged-in user is the tenant.
+      result = await pool.query(
+        `SELECT
+          l.id,
+          l.unit_id,
+          l.tenant_id,
+          l.monthly_rent,
+          l.start_date,
+          l.end_date,
+          l.status,
+          l.created_at,
+          u.unit_number,
+          p.title as property_title,
+          p.city as property_city,
+          p.area as property_area
+         FROM leases l
+         JOIN units u ON l.unit_id = u.id
+         JOIN properties p ON u.property_id = p.id
+         WHERE l.tenant_id = $1
+           ${status ? `AND l.status = $2::lease_status` : ''}
+         ORDER BY l.created_at DESC`,
+        status ? [user.id, status] : [user.id]
+      )
+    } else {
       return NextResponse.json(
-        { error: 'Only landlords can view leases' },
+        { error: 'Only tenants and landlords can view leases' },
         { status: 403 }
       )
     }
-
-    // Query all leases for properties owned by this landlord
-    // Joins multiple tables to get readable data
-    const result = await pool.query(
-      `SELECT 
-        l.id, 
-        l.unit_id, 
-        l.tenant_id, 
-        l.monthly_rent, 
-        l.start_date, 
-        l.end_date, 
-        l.status, 
-        l.created_at,
-        u.unit_number,
-        p.title as property_title,
-        prof.full_name as tenant_name
-       FROM leases l
-       JOIN units u ON l.unit_id = u.id
-       JOIN properties p ON u.property_id = p.id
-       JOIN profiles prof ON l.tenant_id = prof.id
-       WHERE p.landlord_id = $1
-       ORDER BY l.created_at DESC`,
-      [user.id]
-    )
 
     return NextResponse.json({ 
       leases: result.rows,
