@@ -2,11 +2,13 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import PropertyCard from '@/components/property-card'
 import type { MapMarker } from '@/components/map'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Topbar } from '@/components/dashboard/Topbar'
 import { Card } from '@/components/ui/Card'
+import Link from 'next/link'
 
 const PropertyMap = dynamic(() => import('@/components/map'), {
   ssr: false,
@@ -28,18 +30,38 @@ type Property = {
 }
 
 export default function TenantDashboard() {
+  const router = useRouter()
+  const pathname = usePathname()
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [apiError, setApiError] = useState<string | null>(null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
-  const [cityFilter, setCityFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [hasPendingLease, setHasPendingLease] = useState(false)
 
-  const loadProperties = useCallback(async () => {
+  const syncFiltersToUrl = useCallback(
+    (q: string, type: string) => {
+      const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+      if (q.trim()) params.set('q', q.trim())
+      else params.delete('q')
+      if (type !== 'all') params.set('type', type)
+      else params.delete('type')
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname)
+    },
+    [pathname, router]
+  )
+
+  const loadProperties = useCallback(async (q: string, type: string) => {
     setLoading(true)
     setApiError(null)
     try {
-      const response = await fetch('/api/properties?limit=50', { cache: 'no-store' })
+      const params = new URLSearchParams({ limit: '50' })
+      if (q.trim()) params.set('q', q.trim())
+      if (type !== 'all') params.set('type', type)
+
+      const response = await fetch(`/api/properties?${params.toString()}`, { cache: 'no-store' })
       const data = await response.json()
       if (!response.ok) {
         throw new Error(data?.error || 'Properties API failed to initialize.')
@@ -54,24 +76,38 @@ export default function TenantDashboard() {
   }, [])
 
   useEffect(() => {
-    loadProperties()
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    const q = params.get('q') ?? ''
+    const type = params.get('type') ?? 'all'
+    setSearchQuery(q)
+    setTypeFilter(type)
+    loadProperties(q, type)
   }, [loadProperties])
 
-  const cities = useMemo(() => {
-    return [...new Set(properties.map(property => property.city).filter(Boolean))].sort()
-  }, [properties])
+  useEffect(() => {
+    let cancelled = false
+    async function loadPendingLease() {
+      try {
+        const response = await fetch('/api/leases?status=pending', { cache: 'no-store' })
+        const payload = await response.json()
+        if (!cancelled && response.ok) {
+          setHasPendingLease(Array.isArray(payload?.leases) && payload.leases.length > 0)
+        }
+      } catch {
+        if (!cancelled) setHasPendingLease(false)
+      }
+    }
+    loadPendingLease()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const propertyTypes = useMemo(() => {
     return [...new Set(properties.map(property => property.property_type).filter(Boolean))].sort()
   }, [properties])
 
-  const filteredProperties = useMemo(() => {
-    return properties.filter(property => {
-      const matchesCity = cityFilter === 'all' || property.city === cityFilter
-      const matchesType = typeFilter === 'all' || property.property_type === typeFilter
-      return matchesCity && matchesType
-    })
-  }, [properties, cityFilter, typeFilter])
+  const filteredProperties = properties
 
   const markers = useMemo<MapMarker[]>(
     () =>
@@ -102,12 +138,21 @@ export default function TenantDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
         <div className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
           <Topbar title="Tenant overview" subtitle="Discover rentals by area and property type" />
+          {hasPendingLease ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              You have a pending lease offer.{' '}
+              <Link href="/tenant/leases" className="font-semibold underline">
+                View and accept
+              </Link>
+              .
+            </div>
+          ) : null}
           {apiError && (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               <span>{apiError}</span>
               <button
                 type="button"
-                onClick={loadProperties}
+                onClick={() => loadProperties(searchQuery, typeFilter)}
                 className="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
               >
                 Retry
@@ -139,28 +184,30 @@ export default function TenantDashboard() {
             </Card>
           </div>
 
-          <Card title="Filters" description="Refine by city and property type">
+          <Card title="Filters" description="Search by city/title and filter by property type">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-sm font-medium text-blue-800">City</span>
-                <select
-                  value={cityFilter}
-                  onChange={e => setCityFilter(e.target.value)}
+                <span className="text-sm font-medium text-blue-800">Search (city/title)</span>
+                <input
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const nextQuery = e.target.value
+                    setSearchQuery(nextQuery)
+                    syncFiltersToUrl(nextQuery, typeFilter)
+                  }}
+                  placeholder="e.g. Islamabad or Blue Heights"
                   className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-400 focus:outline-none"
-                >
-                  <option value="all">All cities</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-medium text-blue-800">Property type</span>
                 <select
                   value={typeFilter}
-                  onChange={e => setTypeFilter(e.target.value)}
+                  onChange={e => {
+                    const nextType = e.target.value
+                    setTypeFilter(nextType)
+                    syncFiltersToUrl(searchQuery, nextType)
+                  }}
                   className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-400 focus:outline-none"
                 >
                   <option value="all">All types</option>
