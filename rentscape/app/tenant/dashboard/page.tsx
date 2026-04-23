@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import PropertyCard from '@/components/property-card'
 import type { MapMarker } from '@/components/map'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
@@ -30,30 +30,32 @@ type Property = {
 export default function TenantDashboard() {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
   const [cityFilter, setCityFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  useEffect(() => {
-    let cancelled = false
-    async function loadProperties() {
-      try {
-        const response = await fetch('/api/properties?limit=50', { cache: 'no-store' })
-        const data = await response.json()
-        if (!cancelled) {
-          setProperties(Array.isArray(data.properties) ? data.properties : [])
-        }
-      } catch {
-        if (!cancelled) setProperties([])
-      } finally {
-        if (!cancelled) setLoading(false)
+  const loadProperties = useCallback(async () => {
+    setLoading(true)
+    setApiError(null)
+    try {
+      const response = await fetch('/api/properties?limit=50', { cache: 'no-store' })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data?.error || 'Properties API failed to initialize.')
       }
-    }
-    loadProperties()
-    return () => {
-      cancelled = true
+      setProperties(Array.isArray(data.properties) ? data.properties : [])
+    } catch (error) {
+      setProperties([])
+      setApiError(error instanceof Error ? error.message : 'Properties API failed to initialize.')
+    } finally {
+      setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    loadProperties()
+  }, [loadProperties])
 
   const cities = useMemo(() => {
     return [...new Set(properties.map(property => property.city).filter(Boolean))].sort()
@@ -100,6 +102,18 @@ export default function TenantDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
         <div className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
           <Topbar title="Tenant overview" subtitle="Discover rentals by area and property type" />
+          {apiError && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <span>{apiError}</span>
+              <button
+                type="button"
+                onClick={loadProperties}
+                className="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           <div className="grid gap-6 md:grid-cols-3">
             <Card title="Available Listings" description="Currently active properties">
@@ -161,6 +175,8 @@ export default function TenantDashboard() {
             <h2 className="text-xl font-semibold text-slate-800">Listings</h2>
             {loading ? (
               <p className="text-slate-500">Loading properties...</p>
+            ) : filteredProperties.length === 0 ? (
+              <p className="text-slate-500">No listings found yet. Add properties or adjust filters.</p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filteredProperties.map(property => (
