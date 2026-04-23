@@ -25,9 +25,27 @@ const leaseSchema = z.object({
 const draftLeaseSchema = z.object({
   property_id: z.string().uuid(),
   tenant_email: z.string().email(),
-  monthly_rent: z.number().min(1),
-  start_date: z.string(),
-  end_date: z.string(),
+  monthly_rent: z.coerce.number().min(1),
+  start_date: z.string().min(1),
+  end_date: z.string().min(1),
+}).superRefine((data, ctx) => {
+  const start = Date.parse(data.start_date)
+  const end = Date.parse(data.end_date)
+  if (Number.isNaN(start) || Number.isNaN(end)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Invalid start/end date format',
+      path: ['start_date'],
+    })
+    return
+  }
+  if (end <= start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'End date must be after start date',
+      path: ['end_date'],
+    })
+  }
 })
 //Need to add this val;lidation 
 // SELECT 1 FROM leases 
@@ -48,10 +66,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const isDraftPayload = 'property_id' in body || 'tenant_email' in body
     const draftParsed = draftLeaseSchema.safeParse(body)
 
     // Draft lease flow from landlord property card modal.
-    if (draftParsed.success) {
+    if (isDraftPayload) {
+      if (!draftParsed.success) {
+        return NextResponse.json(
+          { error: 'Validation failed', details: draftParsed.error.issues },
+          { status: 400 }
+        )
+      }
+
       const draft = draftParsed.data
 
       const tenantResult = await pool.query<{ id: string }>(

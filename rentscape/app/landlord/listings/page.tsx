@@ -142,7 +142,8 @@ export default function ListingsPage() {
 
       const payload = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(payload?.error || payload?.message || 'Failed to draft lease')
+        const firstDetail = Array.isArray(payload?.details) ? payload.details[0]?.message : null
+        throw new Error(firstDetail || payload?.error || payload?.message || 'Failed to draft lease')
       }
 
       toast.success('Lease drafted successfully!')
