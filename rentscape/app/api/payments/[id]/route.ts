@@ -4,8 +4,8 @@ import { pool } from '@/lib/db'
 import { z } from 'zod'
 
 const markPaidSchema = z.object({
-  paid_date: z.string(), // ISO date: "2026-05-02"
-  payment_method: z.enum(['cash', 'bank_transfer', 'cheque', 'online'])
+  status: z.enum(['tenant_confirmed', 'paid']),
+  paid_date: z.string().optional(), // ISO date: "2026-05-02"
 })
 
 export async function PUT(
@@ -18,19 +18,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (user.role !== 'landlord') {
-      return NextResponse.json(
-        { error: 'Only landlords can mark payments as paid' },
-        { status: 403 }
-      )
-    }
-
     const { id } = await params
 
-    // Verify landlord owns the property this payment belongs to
-    // Complex ownership chain: payments → leases → units → properties
-    const ownerCheck = await pool.query<{ landlord_id: string }>(
-      `SELECT p.landlord_id
+    // Verify payment access + role ownership
+    const accessCheck = await pool.query<{ landlord_id: string; tenant_id: string; status: string; notes: string | null }>(
+      `SELECT p.landlord_id, l.tenant_id, pay.status, pay.notes
        FROM payments pay
        JOIN leases l ON pay.lease_id = l.id
        JOIN units u ON l.unit_id = u.id
@@ -39,30 +31,90 @@ export async function PUT(
       [id]
     )
 
-    if (!ownerCheck.rows[0]) {
+    if (!accessCheck.rows[0]) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
     }
 
-    if (ownerCheck.rows[0].landlord_id !== user.id) {
+    const { landlord_id, tenant_id, status: currentStatus, notes } = accessCheck.rows[0]
+
+    const canLandlordUpdate = user.role === 'landlord' && landlord_id === user.id
+    const canTenantConfirm = user.role === 'tenant' && tenant_id === user.id
+    if (!canLandlordUpdate && !canTenantConfirm) {
       return NextResponse.json(
-        { error: 'You do not own the property for this payment' },
+        { error: 'You are not authorized to update this payment' },
         { status: 403 }
       )
     }
 
+    if (currentStatus === 'paid') {
+      return NextResponse.json({ error: 'Payment is already marked as paid' }, { status: 409 })
+    }
+
     const body = await request.json()
     const validated = markPaidSchema.parse(body)
+    const notesText = notes ?? ''
+    const hasTenantConfirmation = notesText.includes('TENANT_CONFIRMED_AT=')
 
-    // Update payment status to paid
+    if (validated.status === 'tenant_confirmed') {
+      if (!canTenantConfirm) {
+        return NextResponse.json(
+          { error: 'Only the tenant can submit payment confirmation' },
+          { status: 403 }
+        )
+      }
+
+      if (hasTenantConfirmation) {
+        return NextResponse.json(
+          { error: 'Payment confirmation already submitted and pending landlord approval' },
+          { status: 409 }
+        )
+      }
+
+      const confirmationNote =
+        notesText.trim().length > 0
+          ? `${notesText}\nTENANT_CONFIRMED_AT=${new Date().toISOString()}`
+          : `TENANT_CONFIRMED_AT=${new Date().toISOString()}`
+
+      const result = await pool.query(
+        `UPDATE payments
+         SET notes = $1, updated_at = NOW()
+         WHERE id = $2
+         RETURNING *`,
+        [confirmationNote, id]
+      )
+
+      return NextResponse.json({
+        payment: result.rows[0],
+        message: 'Payment confirmation submitted to landlord.',
+      })
+    }
+
+    if (!canLandlordUpdate) {
+      return NextResponse.json(
+        { error: 'Only the landlord can finalize payment as paid' },
+        { status: 403 }
+      )
+    }
+
+    if (!hasTenantConfirmation) {
+      return NextResponse.json(
+        { error: 'Tenant has not confirmed this payment yet' },
+        { status: 409 }
+      )
+    }
+
+    const paidDate = validated.paid_date ?? new Date().toISOString().slice(0, 10)
+
+    // Landlord final approval.
     const result = await pool.query(
       `UPDATE payments 
        SET status = 'paid', 
            paid_date = $1, 
-           payment_method = $2, 
+           notes = NULLIF(REGEXP_REPLACE(COALESCE(notes, ''), E'\\n?TENANT_CONFIRMED_AT=.*$', '', 'g'), ''),
            updated_at = NOW()
-       WHERE id = $3
+       WHERE id = $2
        RETURNING *`,
-      [validated.paid_date, validated.payment_method, id]
+      [paidDate, id]
     )
 
     return NextResponse.json({ payment: result.rows[0] }, { status: 200 })

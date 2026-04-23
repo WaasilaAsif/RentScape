@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const city = searchParams.get('city')
     const area = searchParams.get('area')
-    const property_type = searchParams.get('property_type')
+    const property_type = searchParams.get('property_type') || searchParams.get('type')
     const q = searchParams.get('q')
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
