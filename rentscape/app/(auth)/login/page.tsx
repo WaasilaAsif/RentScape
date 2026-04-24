@@ -1,8 +1,9 @@
 ﻿'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import Link from 'next/link'
 import { Montserrat, Playfair_Display } from 'next/font/google'
 
 const montserrat = Montserrat({
@@ -17,10 +18,11 @@ const playfair = Playfair_Display({
 })
 
 type Role = 'tenant' | 'landlord'
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  // const supabase = useMemo(() => createBrowserClient(
+  //  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  // ), [])
+  //console.log(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 export default function AdminAuthSlider() {
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(true)
@@ -39,7 +41,11 @@ export default function AdminAuthSlider() {
     confirm_password: '',
   })
 
-
+// Inside AdminAuthSlider
+const supabase = useMemo(() => createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+), []);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
@@ -53,25 +59,51 @@ export default function AdminAuthSlider() {
 
     setLoading(true)
     setError(null)
+    // redundant code . Will tru gemini's approach
+    //we are using both signin with password and sign in with supabase 
+    //?????????????????????????????????????????????
+    // signInWithPassword returns the user and session immediately
+  const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
+    email, 
+    password 
+  })
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+  if (signInError) {
+    setError(signInError.message)
+    setLoading(false)
+    console.error('Login error:', signInError)
+    return 
+  }
 
-    if (signInError) {
-      setError(signInError.message)
-      setLoading(false)
-      return
-    }
+  // Use the data returned from the sign-in call directly
+  if (data?.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single()
+    setLoading(false)
+    router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+  }
+    // const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+    // if (signInError) {
+    //   setError(signInError.message)
+    //   setLoading(false)
+    //   return
+    // }
 
-      router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
-    }
+    // const { data: { user } } = await supabase.auth.getUser()
+    // if (user) {
+    //   const { data: profile } = await supabase
+    //     .from('profiles')
+    //     .select('role')
+    //     .eq('id', user.id)
+    //     .single()
+
+    //   router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+    // }
+    
   }
 
   async function handleSignup(e: FormEvent) {
