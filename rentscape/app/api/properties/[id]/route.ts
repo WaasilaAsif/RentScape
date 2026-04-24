@@ -54,8 +54,7 @@ import { z } from 'zod'
 import { getSession } from '@/lib/get-session'
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
@@ -133,8 +132,7 @@ const updateSchema = z.object({
   max_occupants_per_unit: z.number().min(1).optional(),
 })
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Auth check
@@ -271,8 +269,7 @@ export async function PUT(
 
 // delete funtion
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Auth check

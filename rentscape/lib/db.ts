@@ -18,7 +18,7 @@
 // First check no UI is using prisma and then delete and revert this file to the original pg pool implementation if not using prisma in UI
 import { Pool } from 'pg'
 import { PrismaClient } from '@/app/generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
+//import { PrismaPg } from '@prisma/adapter-pg'
 
 // --- Prisma Singleton ---
 
