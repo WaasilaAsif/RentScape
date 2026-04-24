@@ -96,7 +96,10 @@ export async function PUT(
       UPDATE units 
       SET ${updates.join(', ')}, updated_at = NOW()
       WHERE id = $${paramCount}
-      RETURNING *
+      RETURNING 
+        id, property_id, unit_number, floor, bedrooms, bathrooms,
+        monthly_rent::float, advance_required, advance_months,
+        max_occupants, description, is_available, created_at, updated_at
 
     `
     values.push(id)

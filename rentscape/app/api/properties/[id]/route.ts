@@ -239,7 +239,10 @@ export async function PUT(
       UPDATE properties 
       SET ${updates.join(', ')}, updated_at = NOW()
       WHERE id = $${paramCount}
-      RETURNING *,
+      RETURNING 
+        id, landlord_id, title, city, area, property_type,
+        total_units, max_occupants_per_unit, status,
+        created_at, updated_at,
         ST_Y(location::geometry) as lat,
         ST_X(location::geometry) as lng
     `
