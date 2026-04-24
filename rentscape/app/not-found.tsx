@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 px-6">
+    <main className="grid min-h-screen place-items-center bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 px-6">
       <div className="w-full max-w-lg rounded-3xl border border-blue-200/60 bg-white/80 p-8 text-center shadow-xl backdrop-blur">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">RentScape</p>
         <h1 className="mt-3 text-3xl font-bold text-slate-900">Page not found</h1>

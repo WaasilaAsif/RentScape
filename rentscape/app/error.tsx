@@ -10,7 +10,8 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 px-6">
+    //bg-linear-to-br
+    <main className="grid min-h-screen place-items-center bg-linear-to-br from-slate-900 via-blue-950 to-indigo-950 px-6">
       <div className="w-full max-w-lg rounded-3xl border border-white/15 bg-white/10 p-8 text-center text-white shadow-2xl backdrop-blur">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">RentScape</p>
         <h1 className="mt-3 text-3xl font-bold">Something went wrong</h1>
