@@ -19,7 +19,6 @@ export const propertySchema = z.object({
   property_type: z.enum(['apartment', 'house', 'room', 'commercial', 'other']),
   total_units: z.number().int().min(1),
   max_occupants_per_unit: z.number().int().min(1),
-  monthly_rent: z.number().min(0).optional(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
 })
