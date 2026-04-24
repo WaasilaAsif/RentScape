@@ -1,168 +1,163 @@
-//For now only get and post routes for units, we will add patch and delete later when we have the update and delete functionality in place for the units
-
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/db'
-import { z } from 'zod'
 import { getUserWithRole } from '@/lib/get-user-with-role'
-import { RedirectType } from 'next/navigation'
-//ok so Imma write code to explain my choice of param validators
-const unitSchema = z.object({
-    //For landlord to access specific property we do this 
-  property_id: z.string().uuid(),
-  // By default every property will have a unit number of 1 but if the landlord wants to add more units to the same property they can specify the unit number and it should be unique for that property
-  unit_number: z.string().min(1),
-  //min is at zer cuz socho 
-  bedrooms: z.number().min(0),
-  bathrooms: z.number().min(1),
-  floor: z.number().int().optional(),
-  monthly_rent: z.number().min(1),
-  // is_furnished: z.boolean().default(false),
-  advance_required: z.boolean().default(true),
-  advance_months: z.number().min(1).max(12).default(1),
-  max_occupants: z.number().min(1),
-  description: z.string().optional()
-})
+import { z } from 'zod'
 
-export async function POST (request : NextRequest){
-    try {
-        const user = await getUserWithRole()
-        // firsst offf chek the user if he actually iis there
-        if (!user ){
-            //return NextResponse.redirect(new URL('/login', request.url))
-            // or we could return a 401 unauthorized response
-            return NextResponse.json({error: 'Unauthorized Login again'}, {status: 401})
-        }
-        // then we check if the user is a landlord
-
-        if (user.role !== 'landlord') {
-      return NextResponse.json(
-        { error: 'Only landlords can create units' },
-        { status: 403 }
-      )
-    }
-
-     const body = await request.json()
-    const validated = unitSchema.parse(body)
-
-   // 4. Verify property ownership
-    const ownerCheck = await pool.query<{ landlord_id: string }>(
-      'SELECT landlord_id FROM properties WHERE id = $1',
-      [validated.property_id]
-    )
-     if (!ownerCheck.rows[0]) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
-    }
-
-    if (ownerCheck.rows[0].landlord_id !== user.id) {
-      return NextResponse.json(
-        { error: 'You do not own this property' },
-        { status: 403 }
-      )
-    }
-
-    // Check unit number and property_id uniqueness
-    // duplicate check does not have a return type or does not follow the syntax of providieng a type for pooolm query becasue
-    // we are only interested in the length of the rows array to check for duplicates, and we don't need to define a specific type for the query result in this case. The query will return an array of rows, and we can simply check if the length of that array is greater than 0 to determine if a duplicate exists.
-    // It sort of acts like a bool
-    // We use the return type format of syntax <> when we want to specify the type of the result of the query, but in this case we are not interested in the specific type of the result, we just want to check if there are any rows returned, so we can omit the return type and let TypeScript infer it.
-    const duplicateCheck = await pool.query(
-        `
-        Select id from units where property_id = $1 and unit_number = $2`,
-        [validated.property_id, validated.unit_number]
-    )
-    if (duplicateCheck.rows.length > 0) {
-      return NextResponse.json({ error: 'Unit number already exists for this property' }, 
-        // 409 : Conflict status code indicates that the request could not be completed due to a conflict with the current state of the resource. In this case, it means that there is already a unit with the same unit number for the specified property, and therefore the request to create a new unit cannot be fulfilled.
-        { status: 409 })
-    }
-    const result = await pool.query (
-        `
-        INSERT INTO units (
-        property_id ,
-        unit_number,
-        bedrooms,
-        bathrooms,
-        floor,
-        monthly_rent,
-        
-        advance_required,
-        advance_months,
-        max_occupants,
-        description,
-        is_available
-        
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 , true)
-        RETURNING id
-        `
-        ,
-        [
-            validated.property_id,
-            validated.unit_number,
-            validated.bedrooms,
-            validated.bathrooms,
-            validated.floor, //rearranged the order
-            validated.monthly_rent,
-            // validated.is_furnished,
-            validated.advance_required,
-            validated.advance_months,
-            validated.max_occupants,
-            validated.description
-        ]
-
-    )
-   return NextResponse.json(
-      { message: "Unit created", unit: result.rows[0] },
-      { status: 201 }
-    );
-  }
-  catch (err: unknown) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: err.issues },
-        { status: 400 }
-      )
-    }
-    const error = err as Error
-    console.error('POST /api/units error:', error.message)
-    return NextResponse.json(
-      { error: 'Failed to create unit', message: error.message },
-      { status: 500 }
-    )
-}
-}
-
+// GET /api/units?property_id=X or ?available=true
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const propertyId = searchParams.get('property_id')
-    const availableOnly = searchParams.get('available_only') === 'true'
+    const availableOnly = searchParams.get('available') === 'true'
+    const mine = searchParams.get('mine') === 'true'
 
-    if (!propertyId) {
+    let query = `
+      SELECT 
+        u.id, u.unit_number, u.floor, u.bedrooms, u.bathrooms,
+        u.monthly_rent::float as monthly_rent, u.is_available,
+        u.advance_required, u.advance_months, u.max_occupants, u.description,
+        u.created_at,
+        p.id as property_id, p.title as property_title, p.city, p.area,
+        p.property_type,
+        ST_Y(p.location::geometry) as lat,
+        ST_X(p.location::geometry) as lng
+      FROM units u
+      JOIN properties p ON u.property_id = p.id
+      WHERE 1=1
+    `
+    // define rhe typw when sure later
+    type SqlParam = string | number | boolean | Date | null
+
+const params: SqlParam[] = []
+let paramCount = 1
+    if (propertyId) {
+      query += ` AND u.property_id = $${paramCount++}`
+      params.push(propertyId)
+    }
+
+    if (availableOnly) {
+      query += ` AND u.is_available = true AND p.status = 'active'`
+    }
+
+    if (mine) {
+      const user = await getUserWithRole()
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      query += ` AND p.landlord_id = $${paramCount++}`
+      params.push(user.id)
+    }
+
+    query += ` ORDER BY p.created_at DESC, u.unit_number ASC`
+
+    const result = await pool.query(query, params)
+
+    return NextResponse.json({ units: result.rows })
+  } catch (error) {
+    const err = error as Error
+    console.error('GET /api/units error:', err.message)
+    return NextResponse.json(
+      { error: 'Failed to fetch units', message: err.message },
+      { status: 500 }
+    )
+  }
+}
+
+// POST /api/units (keep your existing POST handler)
+const createSchema = z.object({
+  property_id: z.string().uuid(),
+  unit_number: z.string().min(1),
+  floor: z.number().int().optional(),
+  bedrooms: z.number().int().min(0),
+  bathrooms: z.number().int().min(0),
+  monthly_rent: z.number().min(0),
+  is_available: z.boolean().default(true),
+  advance_required: z.boolean().default(false),
+  advance_months: z.number().int().min(1).max(12).optional(),
+  max_occupants: z.number().int().min(1),
+  description: z.string().optional(),
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getUserWithRole()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (user.role !== 'landlord') {
+      return NextResponse.json({ error: 'Only landlords can create units' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const validated = createSchema.parse(body)
+
+    // Verify ownership
+    const ownerCheck = await pool.query<{ landlord_id: string }>(
+      'SELECT landlord_id FROM properties WHERE id = $1',
+      [validated.property_id]
+    )
+
+    if (!ownerCheck.rows[0]) {
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    }
+
+    if (ownerCheck.rows[0].landlord_id !== user.id) {
+      return NextResponse.json({ error: 'You do not own this property' }, { status: 403 })
+    }
+
+    // Check for duplicate unit_number in this property
+    const duplicateCheck = await pool.query(
+      'SELECT id FROM units WHERE property_id = $1 AND unit_number = $2',
+      [validated.property_id, validated.unit_number]
+    )
+
+    if (duplicateCheck.rows.length > 0) {
       return NextResponse.json(
-        { error: 'property_id parameter is required' },
+        { error: `Unit ${validated.unit_number} already exists in this property` },
         { status: 400 }
       )
     }
 
-    let query = 'SELECT id, property_id, unit_number, floor, bedrooms, bathrooms, monthly_rent::float, advance_required, advance_months, max_occupants, description, is_available, created_at, updated_at FROM units WHERE property_id = $1'
-    if (availableOnly) {
-      query += ' AND is_available = true'
+    const result = await pool.query(
+      `INSERT INTO units (
+        property_id, unit_number, floor, bedrooms, bathrooms,
+        monthly_rent, is_available, advance_required, advance_months,
+        max_occupants, description
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING 
+        id, unit_number, floor, bedrooms, bathrooms,
+        monthly_rent::float as monthly_rent, is_available,
+        advance_required, advance_months, max_occupants, description,
+        created_at`,
+      [
+        validated.property_id,
+        validated.unit_number,
+        validated.floor,
+        validated.bedrooms,
+        validated.bathrooms,
+        validated.monthly_rent,
+        validated.is_available,
+        validated.advance_required,
+        validated.advance_months,
+        validated.max_occupants,
+        validated.description,
+      ]
+    )
+
+    return NextResponse.json({ unit: result.rows[0] }, { status: 201 })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.issues },
+        { status: 400 }
+      )
     }
-    query += ' ORDER BY unit_number'
 
-    const result = await pool.query(query, [propertyId])
-
-    return NextResponse.json({ 
-      units: result.rows,
-      count: result.rows.length 
-    })
-
-  } catch (err: unknown) {
-    const error = err as Error
-    console.error('GET /api/units error:', error.message)
+    const err = error as Error
+    console.error('POST /api/units error:', err.message)
     return NextResponse.json(
-      { error: 'Failed to fetch units', message: error.message },
+      { error: 'Failed to create unit', message: err.message },
       { status: 500 }
     )
   }
