@@ -34,7 +34,19 @@ export default async function LandlordDashboard() {
   }
 
   const analytics: Analytics = await response.json()
+  //const formatRs = (amount: number) => `Rs. ${amount.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// const formatRs = (amount: number) =>
+//   amount.toLocaleString('en-PK', {
+//     style: 'currency',
+//     currency: 'PKR'
+//   })
 
+const formatRs = (amount: number) =>
+  new Intl.NumberFormat('en-PK', {
+    style: 'currency',
+    currency: 'PKR',
+    maximumFractionDigits: 0
+  }).format(amount)
   return (
     <DashboardShell role="landlord">
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
@@ -75,13 +87,13 @@ export default async function LandlordDashboard() {
           <div className="grid gap-6 lg:grid-cols-2">
             <Card title="Revenue Overview">
               <div className="space-y-6">
-                <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
+                <div className="rounded-xl bg-linear-to-br from-blue-500 to-blue-600 p-6 text-white">
                   <p className="text-sm font-medium text-blue-100">Total Revenue</p>
-                  <p className="mt-2 text-3xl font-bold">${analytics.totalRevenue.toFixed(2)}</p>
+                  <p className="mt-2 text-3xl font-bold">{formatRs(analytics.totalRevenue)}</p>
                 </div>
-                <div className="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 p-6 border border-amber-200/50">
+                <div className="rounded-xl bg-linear-to-br from-amber-50 to-orange-50 p-6 border border-amber-200/50">
                   <p className="text-sm font-medium text-amber-900">Pending Payments</p>
-                  <p className="mt-2 text-3xl font-bold text-amber-600">${analytics.pendingPayments.toFixed(2)}</p>
+                  <p className="mt-2 text-3xl font-bold text-amber-600">{formatRs(analytics.pendingPayments)}</p>
                 </div>
               </div>
             </Card>
