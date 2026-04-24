@@ -93,31 +93,12 @@ export async function POST(request: NextRequest) {
       ]
     )
 
-    const createdProperty = insertResult.rows[0]
-
-    // Optional: create an initial unit so rent appears in cards/list pages.
-    if (typeof data.monthly_rent === 'number') {
-      await pool.query(
-        `
-        INSERT INTO units (
-          property_id,
-          unit_number,
-          monthly_rent,
-          bedrooms,
-          bathrooms,
-          max_occupants,
-          is_available
-        )
-        VALUES ($1::uuid, $2, $3, 1, 1, 1, true)
-        `,
-        [createdProperty.id, '1', data.monthly_rent]
-      )
-    }
-
+    // const createdProperty = insertResult.rows[0]
     // 5. Success! Return the created property as JSON
-    return NextResponse.json({ property: createdProperty }, { status: 201 })
-
-  }catch (err) {
+     return NextResponse.json({ property: insertResult.rows[0] }, { status: 201 })
+  }
+  
+  catch (err) {
     // We treat 'err' as unknown for type safety
     const error = err as Error;
     console.error('CRITICAL API ERROR:', error.message);
