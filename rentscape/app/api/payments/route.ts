@@ -11,47 +11,61 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const leaseId = searchParams.get('lease_id')
+    const status = searchParams.get('status')
+    const baseFilters: string[] = []
+    const params: string[] = []
+    let paramCount = 1
 
-    if (!leaseId) {
-      return NextResponse.json(
-        { error: 'lease_id parameter is required' },
-        { status: 400 }
-      )
+    if (user.role === 'tenant') {
+      baseFilters.push(`l.tenant_id = $${paramCount++}`)
+      params.push(user.id)
+    } else if (user.role === 'landlord') {
+      baseFilters.push(`p.landlord_id = $${paramCount++}`)
+      params.push(user.id)
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Verify user has access to this lease (landlord or tenant)
-    const accessCheck = await pool.query<{
-      tenant_id: string
-      landlord_id: string
-    }>(
-      `SELECT l.tenant_id, p.landlord_id
-       FROM leases l
+    if (leaseId) {
+      baseFilters.push(`pay.lease_id = $${paramCount++}`)
+      params.push(leaseId)
+    }
+
+    if (status) {
+      baseFilters.push(`pay.status = $${paramCount++}::payment_status`)
+      params.push(status)
+    }
+
+    const whereClause = baseFilters.length > 0 ? `WHERE ${baseFilters.join(' AND ')}` : ''
+
+    const result = await pool.query(
+      `SELECT 
+        pay.id,
+        pay.lease_id,
+        pay.amount,
+        pay.due_date,
+        pay.paid_date,
+        pay.status,
+        pay.notes,
+        CASE
+          WHEN pay.notes LIKE '%TENANT_CONFIRMED_AT=%' THEN true
+          ELSE false
+        END as tenant_confirmed,
+        pay.created_at,
+        l.tenant_id,
+        l.start_date,
+        l.end_date,
+        u.unit_number,
+        p.id as property_id,
+        p.title as property_title,
+        p.city as property_city
+       FROM payments pay
+       JOIN leases l ON pay.lease_id = l.id
        JOIN units u ON l.unit_id = u.id
        JOIN properties p ON u.property_id = p.id
-       WHERE l.id = $1`,
-      [leaseId]
-    )
-
-    if (!accessCheck.rows[0]) {
-      return NextResponse.json({ error: 'Lease not found' }, { status: 404 })
-    }
-
-    const { tenant_id, landlord_id } = accessCheck.rows[0]
-
-    // Authorization: Only landlord or tenant on this lease
-    if (user.id !== tenant_id && user.id !== landlord_id) {
-      return NextResponse.json(
-        { error: 'You are not authorized to view these payments' },
-        { status: 403 }
-      )
-    }
-
-    // Fetch payments for this lease
-    const result = await pool.query(
-      `SELECT * FROM payments 
-       WHERE lease_id = $1 
-       ORDER BY due_date`,
-      [leaseId]
+       ${whereClause}
+       ORDER BY pay.due_date ASC`,
+      params
     )
 
     return NextResponse.json({ 

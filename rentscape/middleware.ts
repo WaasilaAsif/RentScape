@@ -87,146 +87,81 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+type AppRole = 'tenant' | 'landlord' | 'admin' | null
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const path = request.nextUrl.pathname
+  let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options :  Record<string, unknown>) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
         },
       },
     }
   )
 
-  // Get session
-  const { data: { session } } = await supabase.auth.getSession()
+  const publicRoutes = ['/', '/login', '/signup', '/browse']
+  const isPublicRoute =
+    publicRoutes.some((route) => path === route || path.startsWith(`${route}/`)) ||
+    path.startsWith('/_next') ||
+    path === '/favicon.ico' ||
+    /\.(?:svg|png|jpg|jpeg|gif|webp|ico)$/i.test(path)
 
-  const path = request.nextUrl.pathname
-
-  // ========================================
-  // Public routes (allow everyone)
-  // ========================================
-  const publicRoutes = [
-    '/login',
-    '/signup',
-    '/',
-    '/_next',
-    '/favicon.ico'
-  ]
-
-  const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
-  
-  // Always allow public routes
-  if (isPublicRoute) {
+  if (path.startsWith('/api/properties') && request.method === 'GET') {
     return response
   }
 
-  // Special handling for /api/properties (GET is public, POST/PUT require auth)
-  if (path.startsWith('/api/properties')) {
-    if (request.method === 'GET') {
-      return response // Public browse
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    if (isPublicRoute) return response
+
+    if (path.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    // POST/PUT fall through to auth check below
+
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('redirect', path)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // ========================================
-  // Protected routes (require login)
-  // ========================================
-  
-  if (!session) {
-    if (path.startsWith('/api/')) {
-      // API routes return 401
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    } else {
-      // Pages redirect to login
-      const redirectUrl = new URL('/login', request.url)
-      redirectUrl.searchParams.set('redirect', path)
-      return NextResponse.redirect(redirectUrl)
-    }
+  let role: AppRole = (user.app_metadata?.role ?? user.user_metadata?.role ?? null) as AppRole
+
+  // Fallback for users whose JWT role is missing/outdated.
+  if (!role) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+    role = (profile?.role ?? null) as AppRole
   }
 
-  // Get user role from JWT
-  const userRole = session.user.app_metadata?.role || session.user.user_metadata?.role
-
-  // ========================================
-  // Landlord-only routes
-  // ========================================
-  const landlordRoutes = ['/landlord']
-
-  const isLandlordRoute = landlordRoutes.some(route => path.startsWith(route))
-
-  if (isLandlordRoute && userRole !== 'landlord') {
-    if (path.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: 'Forbidden - Landlord access required' },
-        { status: 403 }
-      )
-    } else {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
+  if ((path === '/login' || path === '/signup') && role) {
+    const dashboardPath = role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard'
+    return NextResponse.redirect(new URL(dashboardPath, request.url))
   }
 
-  // ========================================
-  // Tenant-only routes
-  // ========================================
-  const tenantRoutes = ['/tenant']
+  if (path.startsWith('/landlord') && role !== 'landlord' && role !== 'admin') {
+    const redirectPath = role === 'tenant' ? '/tenant/dashboard' : '/login'
+    return NextResponse.redirect(new URL(redirectPath, request.url))
+  }
 
-  const isTenantRoute = tenantRoutes.some(route => path.startsWith(route))
-
-  if (isTenantRoute && userRole !== 'tenant') {
-    if (path.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: 'Forbidden - Tenant access required' },
-        { status: 403 }
-      )
-    } else {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
+  if (path.startsWith('/tenant') && role !== 'tenant' && role !== 'admin') {
+    const redirectPath = role === 'landlord' ? '/landlord/dashboard' : '/login'
+    return NextResponse.redirect(new URL(redirectPath, request.url))
   }
 
   return response

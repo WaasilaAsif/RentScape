@@ -25,9 +25,10 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({
+  globalForPrisma.prisma ??
+  new PrismaClient({
     adapter: new PrismaPg({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: (process.env.DATABASE_URL ?? '').trim(),
     }),
   })
 
@@ -38,8 +39,14 @@ if (process.env.NODE_ENV !== 'production') {
 
 // --- pg Pool ---
 
+const databaseUrl = (process.env.DATABASE_URL ?? '').trim()
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is missing. Please set it in your environment.')
+}
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: databaseUrl,
   ssl: {
     rejectUnauthorized: false, // Local dev only — Supabase cert not in Node trust store
   },

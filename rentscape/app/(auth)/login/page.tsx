@@ -18,12 +18,17 @@ const playfair = Playfair_Display({
 })
 
 type Role = 'tenant' | 'landlord'
-  // const supabase = useMemo(() => createBrowserClient(
-  //  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  // ), [])
-  //console.log(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 export default function AdminAuthSlider() {
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim()
+  const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim()
+  const supabase =
+    supabaseUrl && supabaseAnonKey
+      ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+      : null
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -41,14 +46,24 @@ export default function AdminAuthSlider() {
     confirm_password: '',
   })
 
-// Inside AdminAuthSlider
-const supabase = useMemo(() => createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-), []);
+  const switchToSignIn = () => {
+    setIsSignUp(false)
+    setError(null)
+  }
+
+  const switchToSignUp = () => {
+    setIsSignUp(true)
+    setError(null)
+  }
+
+
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
+    if (!supabase) {
+      setError('Supabase client is not configured. Please check frontend environment variables.')
+      return
+    }
     const email = loginForm.email.trim()
     const password = loginForm.password
 
@@ -75,39 +90,32 @@ const supabase = useMemo(() => createBrowserClient(
     return 
   }
 
-  // Use the data returned from the sign-in call directly
-  if (data?.user) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+    if (userError || !user) {
+      setError(userError?.message ?? 'User session was not initialized. Please sign in again.')
+      setLoading(false)
+      return
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', data.user.id)
+      .eq('id', user.id)
       .single()
+
     setLoading(false)
     router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
-  }
-    // const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-
-    // if (signInError) {
-    //   setError(signInError.message)
-    //   setLoading(false)
-    //   return
-    // }
-
-    // const { data: { user } } = await supabase.auth.getUser()
-    // if (user) {
-    //   const { data: profile } = await supabase
-    //     .from('profiles')
-    //     .select('role')
-    //     .eq('id', user.id)
-    //     .single()
-
-    //   router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
-    // }
-    
   }
 
   async function handleSignup(e: FormEvent) {
     e.preventDefault()
+    if (!supabase) {
+      setError('Supabase client is not configured. Please check frontend environment variables.')
+      return
+    }
 
     if (signupForm.password !== signupForm.confirm_password) {
       setError('Passwords do not match.')
@@ -172,7 +180,8 @@ const supabase = useMemo(() => createBrowserClient(
           display: block;
           width: 100%;
           max-width: none;
-          min-height: min(100vh, 100dvh);
+          min-height: 100vh;
+          min-height: 100dvh;
           pointer-events: none;
           visibility: hidden;
         }
@@ -185,7 +194,8 @@ const supabase = useMemo(() => createBrowserClient(
           max-width: none;
           margin-left: auto;
           margin-right: auto;
-          min-height: min(100vh, 100dvh);
+          min-height: 100vh;
+          min-height: 100dvh;
           border-radius: 0;
           overflow: hidden;
           background: rgba(5, 15, 26, 0.35);
@@ -681,7 +691,7 @@ const supabase = useMemo(() => createBrowserClient(
             role="tab"
             aria-selected={!isSignUp}
             className={!isSignUp ? 'active' : ''}
-            onClick={() => setIsSignUp(false)}
+            onClick={switchToSignIn}
           >
             Sign In
           </button>
@@ -690,7 +700,7 @@ const supabase = useMemo(() => createBrowserClient(
             role="tab"
             aria-selected={isSignUp}
             className={isSignUp ? 'active' : ''}
-            onClick={() => setIsSignUp(true)}
+            onClick={switchToSignUp}
           >
             Sign Up
           </button>
@@ -707,7 +717,10 @@ const supabase = useMemo(() => createBrowserClient(
                 <select
                   className="input"
                   value={signupForm.role}
-                  onChange={e => setSignupForm({ ...signupForm, role: e.target.value as Role })}
+                  onChange={e => {
+                    setError(null)
+                    setSignupForm({ ...signupForm, role: e.target.value as Role })
+                  }}
                 >
                   <option value="tenant">Tenant</option>
                   <option value="landlord">Landlord</option>
@@ -719,7 +732,10 @@ const supabase = useMemo(() => createBrowserClient(
                   className="input"
                   type="text"
                   value={signupForm.full_name}
-                  onChange={e => setSignupForm({ ...signupForm, full_name: e.target.value })}
+                  onChange={e => {
+                    setError(null)
+                    setSignupForm({ ...signupForm, full_name: e.target.value })
+                  }}
                   placeholder="Enter your full name"
                   required
                 />
@@ -730,7 +746,10 @@ const supabase = useMemo(() => createBrowserClient(
                   className="input"
                   type="email"
                   value={signupForm.email}
-                  onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
+                  onChange={e => {
+                    setError(null)
+                    setSignupForm({ ...signupForm, email: e.target.value })
+                  }}
                   placeholder="you@example.com"
                   required
                 />
@@ -742,7 +761,10 @@ const supabase = useMemo(() => createBrowserClient(
                     className="input"
                     type={showSignupPassword ? 'text' : 'password'}
                     value={signupForm.password}
-                    onChange={e => setSignupForm({ ...signupForm, password: e.target.value })}
+                    onChange={e => {
+                      setError(null)
+                      setSignupForm({ ...signupForm, password: e.target.value })
+                    }}
                     placeholder="Minimum 8 characters"
                     required
                   />
@@ -762,7 +784,10 @@ const supabase = useMemo(() => createBrowserClient(
                     className="input"
                     type={showConfirm ? 'text' : 'password'}
                     value={signupForm.confirm_password}
-                    onChange={e => setSignupForm({ ...signupForm, confirm_password: e.target.value })}
+                    onChange={e => {
+                      setError(null)
+                      setSignupForm({ ...signupForm, confirm_password: e.target.value })
+                    }}
                     placeholder="Confirm your password"
                     required
                   />
@@ -795,7 +820,10 @@ const supabase = useMemo(() => createBrowserClient(
                   className="input"
                   type="email"
                   value={loginForm.email}
-                  onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+                  onChange={e => {
+                    setError(null)
+                    setLoginForm({ ...loginForm, email: e.target.value })
+                  }}
                   placeholder="you@example.com"
                   required
                 />
@@ -807,7 +835,10 @@ const supabase = useMemo(() => createBrowserClient(
                     className="input"
                     type={showLoginPassword ? 'text' : 'password'}
                     value={loginForm.password}
-                    onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                    onChange={e => {
+                      setError(null)
+                      setLoginForm({ ...loginForm, password: e.target.value })
+                    }}
                     placeholder="••••••••"
                     required
                   />
@@ -834,7 +865,7 @@ const supabase = useMemo(() => createBrowserClient(
               <span>Welcome back</span>
               <h2>Already registered?</h2>
               <p>Sign in and continue managing your rentals with a premium dashboard experience.</p>
-              <button className="overlay-button" onClick={() => setIsSignUp(false)}>
+              <button className="overlay-button" onClick={switchToSignIn}>
                 Sign In
               </button>
             </div>
@@ -842,7 +873,7 @@ const supabase = useMemo(() => createBrowserClient(
               <span>New here</span>
               <h2>Create an account</h2>
               <p>Join RentScape and unlock advanced leasing, payment, and maintenance workflows.</p>
-              <button className="overlay-button" onClick={() => setIsSignUp(true)}>
+              <button className="overlay-button" onClick={switchToSignUp}>
                 Sign Up
               </button>
             </div>
