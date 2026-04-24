@@ -156,10 +156,10 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, params)
 
-    return NextResponse.json({
-      maintenance_requests: result.rows,
-      count: result.rows.length
-    })
+  return NextResponse.json({
+  requests: result.rows,  // Changed from maintenance_requests
+  count: result.rows.length
+})
 
   } catch (err: unknown) {
     const error = err as Error

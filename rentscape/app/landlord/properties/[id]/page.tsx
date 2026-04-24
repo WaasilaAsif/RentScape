@@ -296,7 +296,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
           <Card title="Units" description={`${units.length} of ${property.total_units} units added`}>
             {units.length === 0 ? (
-              <p className="text-slate-600">No units added yet. Click "Add Unit" to create the first one.</p>
+              <p className="text-slate-600">No units added yet. Click &quot;Add Unit&quot; to create the first one.</p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {units.map(unit => (

@@ -4,12 +4,13 @@ import { pool } from '@/lib/db'
 import { z } from 'zod'
 
 const updateStatusSchema = z.object({
-  status: z.enum(['open', 'in_progress', 'resolved', 'closed'])
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']),
+  resolved_at: z.string().optional()  // ← ADDED
 })
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }  // ← CHANGED: Added Promise<>
 ) {
   try {
     const user = await getUserWithRole()
@@ -53,19 +54,28 @@ export async function PUT(
     const body = await request.json()
     const validated = updateStatusSchema.parse(body)
 
-    // Update status and set resolved_at if status is 'resolved' or 'closed'
-    const resolvedAt = ['resolved', 'closed'].includes(validated.status)
-      ? 'NOW()'
-      : 'NULL'
+    // Build dynamic update based on what's provided
+    const updates: string[] = ['status = $1', 'updated_at = NOW()']
+    type SqlParam = string | number | boolean | Date | null
+    const values: SqlParam[] = [validated.status]
+    let paramCount = 2
+
+    if (validated.resolved_at) {
+      updates.push(`resolved_at = $${paramCount++}`)
+      values.push(validated.resolved_at)
+    } else if (['resolved', 'closed'].includes(validated.status)) {
+      // Auto-set resolved_at if status is resolved/closed
+      updates.push(`resolved_at = NOW()`)
+    }
+
+    values.push(id)
 
     const result = await pool.query(
       `UPDATE maintenance_requests 
-       SET status = $1, 
-           resolved_at = ${resolvedAt},
-           updated_at = NOW()
-       WHERE id = $2
+       SET ${updates.join(', ')}
+       WHERE id = $${paramCount}
        RETURNING *`,
-      [validated.status, id]
+      values
     )
 
     return NextResponse.json(
@@ -76,7 +86,7 @@ export async function PUT(
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: err.issues},
+        { error: 'Validation failed', details: err.issues },
         { status: 400 }
       )
     }

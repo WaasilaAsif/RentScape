@@ -4,13 +4,13 @@ import { pool } from '@/lib/db'
 import { z } from 'zod'
 
 const markPaidSchema = z.object({
-  paid_date: z.string(), // ISO date: "2026-05-02"
-  payment_method: z.enum(['cash', 'bank_transfer', 'cheque', 'online'])
+  status: z.enum(['pending', 'paid', 'overdue', 'waived']).optional(),
+  paid_date: z.string().optional(),
 })
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }  // ← Added Promise<>
 ) {
   try {
     const user = await getUserWithRole()
@@ -20,7 +20,7 @@ export async function PUT(
 
     if (user.role !== 'landlord') {
       return NextResponse.json(
-        { error: 'Only landlords can mark payments as paid' },
+        { error: 'Only landlords can update payments' },
         { status: 403 }
       )
     }
@@ -28,7 +28,6 @@ export async function PUT(
     const { id } = await params
 
     // Verify landlord owns the property this payment belongs to
-    // Complex ownership chain: payments → leases → units → properties
     const ownerCheck = await pool.query<{ landlord_id: string }>(
       `SELECT p.landlord_id
        FROM payments pay
@@ -53,16 +52,37 @@ export async function PUT(
     const body = await request.json()
     const validated = markPaidSchema.parse(body)
 
-    // Update payment status to paid
+    // Build dynamic update
+    const updates: string[] = []
+    type SqlParam = string | number | boolean | Date | null
+    const values: SqlParam[] = []
+    let paramCount = 1
+
+    if (validated.status) {
+      updates.push(`status = $${paramCount++}`)
+      values.push(validated.status)
+    }
+
+    if (validated.paid_date) {
+      updates.push(`paid_date = $${paramCount++}`)
+      values.push(validated.paid_date)
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      )
+    }
+
+    updates.push(`updated_at = NOW()`)
+
     const result = await pool.query(
       `UPDATE payments 
-       SET status = 'paid', 
-           paid_date = $1, 
-           payment_method = $2, 
-           updated_at = NOW()
-       WHERE id = $3
+       SET ${updates.join(', ')}
+       WHERE id = $${paramCount}
        RETURNING *`,
-      [validated.paid_date, validated.payment_method, id]
+      [...values, id]
     )
 
     return NextResponse.json({ payment: result.rows[0] }, { status: 200 })
