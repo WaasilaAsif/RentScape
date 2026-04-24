@@ -2,7 +2,7 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell"
 import { Card } from "@/components/ui/Card"
 import { Topbar } from "@/components/dashboard/Topbar"
 import { MonthlyRevenueChart, PropertyTypesChart } from "@/components/charts/Charts"
-
+import { headers } from 'next/headers'
 interface Analytics {
   totalProperties: number
   activeLeases: number
@@ -16,8 +16,17 @@ interface Analytics {
 
 export default async function LandlordDashboard() {
   // Fetch from API route
-  const response = await fetch('http://localhost:3000/api/dashboard/landlord', {
-    cache: 'no-store'  // Always get fresh data
+  const headersList = await headers()
+  const host = headersList.get('host') || 'localhost:3000'
+  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
+
+  const cookieHeader = headersList.get('cookie') || ''
+
+  const response = await fetch(`${protocol}://${host}/api/dashboard/landlord`, {
+    cache: 'no-store',
+    headers: {
+      cookie: cookieHeader
+    }
   })
 
   if (!response.ok) {
