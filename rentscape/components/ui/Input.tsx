@@ -1,22 +1,32 @@
-import type { InputHTMLAttributes } from "react";
+"use client";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
+import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
+
+const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar").then(mod => ({ default: mod.Sidebar })), {
+  ssr: false,
+  loading: () => (
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">
+      <div className="space-y-2">
+        <p className="text-sm uppercase tracking-widest text-blue-600">RentScape</p>
+        <h2 className="text-2xl font-bold text-blue-900">Loading...</h2>
+      </div>
+    </aside>
+  )
+});
+
+interface DashboardShellProps {
+  role: "tenant" | "landlord";
+  children: ReactNode;
 }
 
-export function Input({ label, error, className = "", ...props }: InputProps) {
+export function DashboardShell({ role, children }: DashboardShellProps) {
   return (
-    <label className="flex flex-col gap-2 text-sm text-slate-700">
-      {label ? <span className="font-medium">{label}</span> : null}
-      <input
-        className={
-          "h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 " +
-          className
-        }
-        {...props}
-      />
-      {error ? <span className="text-xs text-rose-600">{error}</span> : null}
-    </label>
+    <div className="min-h-screen bg-white text-slate-900">
+      <div className="mx-auto flex min-h-screen max-w-400 items-start">
+        <Sidebar role={role} />
+        <main className="flex-1">{children}</main>
+      </div>
+    </div>
   );
 }
