@@ -1,116 +1,30 @@
-import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { Card } from "@/components/ui/Card";
-import { Topbar } from "@/components/dashboard/Topbar";
-import { MonthlyRevenueChart, PropertyTypesChart } from "@/components/charts/Charts";
-import { pool } from "@/lib/db";
-import { getSession } from "@/lib/get-session";
+import { DashboardShell } from "@/components/dashboard/DashboardShell"
+import { Card } from "@/components/ui/Card"
+import { Topbar } from "@/components/dashboard/Topbar"
+import { MonthlyRevenueChart, PropertyTypesChart } from "@/components/charts/Charts"
 
 interface Analytics {
-  totalProperties: number;
-  activeLeases: number;
-  totalTenants: number;
-  averageRating: number;
-  totalRevenue: number;
-  pendingPayments: number;
-  monthlyRevenue: Array<{ month: string; revenue: number }>;
-  propertyTypes: Array<{ type: string; count: number }>;
-}
-
-async function getAnalytics(userId: string): Promise<Analytics> {
-  const propertiesResult = await pool.query(
-    'SELECT COUNT(*) as count FROM properties WHERE landlord_id = $1',
-    [userId]
-  );
-  const totalProperties = parseInt(propertiesResult.rows[0].count, 10);
-
-  const leasesResult = await pool.query(
-    `SELECT COUNT(DISTINCT l.tenant_id) as tenants, COUNT(*) as leases
-     FROM leases l
-     JOIN units u ON l.unit_id = u.id
-     JOIN properties p ON u.property_id = p.id
-     WHERE p.landlord_id = $1 AND l.status = 'active'`,
-    [userId]
-  );
-  const activeLeases = parseInt(leasesResult.rows[0].leases, 10);
-  const totalTenants = parseInt(leasesResult.rows[0].tenants, 10);
-
-  const ratingResult = await pool.query(
-    `SELECT AVG(r.score) as avg_rating
-     FROM ratings r
-     JOIN leases l ON r.lease_id = l.id
-     JOIN units u ON l.unit_id = u.id
-     JOIN properties p ON u.property_id = p.id
-     WHERE p.landlord_id = $1 AND r.target_type = 'landlord'`,
-    [userId]
-  );
-  const averageRating = parseFloat(ratingResult.rows[0].avg_rating || 0);
-
-  const revenueResult = await pool.query(
-    `SELECT SUM(p.amount) as total
-     FROM payments p
-     JOIN leases l ON p.lease_id = l.id
-     JOIN units u ON l.unit_id = u.id
-     JOIN properties prop ON u.property_id = prop.id
-     WHERE prop.landlord_id = $1 AND p.status = 'paid'`,
-    [userId]
-  );
-  const totalRevenue = parseFloat(revenueResult.rows[0].total || 0);
-
-  const pendingResult = await pool.query(
-    `SELECT SUM(p.amount) as total
-     FROM payments p
-     JOIN leases l ON p.lease_id = l.id
-     JOIN units u ON l.unit_id = u.id
-     JOIN properties prop ON u.property_id = prop.id
-     WHERE prop.landlord_id = $1 AND p.status = 'pending'`,
-    [userId]
-  );
-  const pendingPayments = parseFloat(pendingResult.rows[0].total || 0);
-
-  const monthlyRevenueResult = await pool.query(
-    `SELECT TO_CHAR(p.paid_date, 'Mon YYYY') as month, SUM(p.amount) as revenue
-     FROM payments p
-     JOIN leases l ON p.lease_id = l.id
-     JOIN units u ON l.unit_id = u.id
-     JOIN properties prop ON u.property_id = prop.id
-     WHERE prop.landlord_id = $1 AND p.status = 'paid' AND p.paid_date >= NOW() - INTERVAL '6 months'
-     GROUP BY TO_CHAR(p.paid_date, 'Mon YYYY')
-     ORDER BY MIN(p.paid_date)`,
-    [userId]
-  );
-  const monthlyRevenue = monthlyRevenueResult.rows.map((row: any) => ({
-    month: row.month,
-    revenue: parseFloat(row.revenue)
-  }));
-
-  const propertyTypesResult = await pool.query(
-    'SELECT property_type, COUNT(*) as count FROM properties WHERE landlord_id = $1 GROUP BY property_type',
-    [userId]
-  );
-  const propertyTypes = propertyTypesResult.rows.map((row: any) => ({
-    type: row.property_type,
-    count: parseInt(row.count, 10)
-  }));
-
-  return {
-    totalProperties,
-    activeLeases,
-    totalTenants,
-    averageRating,
-    totalRevenue,
-    pendingPayments,
-    monthlyRevenue,
-    propertyTypes,
-  };
+  totalProperties: number
+  activeLeases: number
+  totalTenants: number
+  averageRating: number
+  totalRevenue: number
+  pendingPayments: number
+  monthlyRevenue: Array<{ month: string; revenue: number }>
+  propertyTypes: Array<{ type: string; count: number }>
 }
 
 export default async function LandlordDashboard() {
-  const user = await getSession();
-  if (!user) {
-    return <div className="p-8">Please log in</div>;
+  // Fetch from API route
+  const response = await fetch('http://localhost:3000/api/dashboard/landlord', {
+    cache: 'no-store'  // Always get fresh data
+  })
+
+  if (!response.ok) {
+    return <div className="p-8">Failed to load dashboard</div>
   }
 
-  const analytics = await getAnalytics(user.id);
+  const analytics: Analytics = await response.json()
 
   return (
     <DashboardShell role="landlord">
@@ -173,5 +87,5 @@ export default async function LandlordDashboard() {
         </div>
       </div>
     </DashboardShell>
-  );
+  )
 }
