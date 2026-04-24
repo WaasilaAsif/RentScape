@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = 'SELECT * FROM units WHERE property_id = $1'
+    let query = 'SELECT id, property_id, unit_number, floor, bedrooms, bathrooms, monthly_rent::float, advance_required, advance_months, max_occupants, description, is_available, created_at, updated_at FROM units WHERE property_id = $1'
     if (availableOnly) {
       query += ' AND is_available = true'
     }
