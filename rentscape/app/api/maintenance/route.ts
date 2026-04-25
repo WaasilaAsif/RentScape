@@ -94,21 +94,115 @@ export async function POST(request: NextRequest) {
 
 //Used claud idher had to do tne last royte to send fast
 //testing ka time nhi mila will create test files later
+// export async function GET(request: NextRequest) {
+//   try {
+//     const user = await getUserWithRole()
+//     if (!user) {
+//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+//     }
+//     //used vars here to sttore different queries for diff scenarios 
+//     // Does this improve efficiency? Maybe not much but it does improve readability and maintainability of code
+//     let query: string
+//     let params: string[]
+
+//     if (user.role === 'tenant') {
+//       // Tenants see only their own requests
+//       //Future rec: Can create a view for this? will increase performance and reduce complexity in code
+
+//       query = `
+//         SELECT 
+//           mr.*,
+//           u.unit_number,
+//           p.title as property_title
+//         FROM maintenance_requests mr
+//         JOIN units u ON mr.unit_id = u.id
+//         JOIN properties p ON u.property_id = p.id
+//         WHERE mr.tenant_id = $1
+//         ORDER BY mr.created_at DESC
+//       `
+//       params = [user.id]
+
+//     } else if (user.role === 'landlord') {
+//       // Landlords see all requests for their properties
+//       //same for here we can add a view ho saka hai behrta ho and meets deliverables
+//       query = `
+//         SELECT 
+//           mr.*,
+//           u.unit_number,
+//           p.title as property_title,
+//           prof.full_name as tenant_name
+//         FROM maintenance_requests mr
+//         JOIN units u ON mr.unit_id = u.id
+//         JOIN properties p ON u.property_id = p.id
+//         JOIN profiles prof ON mr.tenant_id = prof.id
+//         WHERE p.landlord_id = $1
+//         ORDER BY 
+//           CASE mr.priority
+//             WHEN 'urgent' THEN 1
+//             WHEN 'high' THEN 2
+//             WHEN 'medium' THEN 3
+//             WHEN 'low' THEN 4
+//           END,
+//           mr.created_at DESC
+//       `
+//       params = [user.id]
+
+//     } else {
+//       return NextResponse.json(
+//         { error: 'Invalid role' },
+//         { status: 403 }
+//       )
+//     }
+
+//     const result = await pool.query(query, params)
+
+//   return NextResponse.json({
+//   requests: result.rows,  // Changed from maintenance_requests
+//   count: result.rows.length
+// })
+
+//   } catch (err: unknown) {
+//     const error = err as Error
+//     console.error('GET /api/maintenance error:', error.message)
+//     return NextResponse.json(
+//       { error: 'Failed to fetch maintenance requests', message: error.message },
+//       { status: 500 }
+//     )
+//   }
+// }
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getUserWithRole()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    //used vars here to sttore different queries for diff scenarios 
-    // Does this improve efficiency? Maybe not much but it does improve readability and maintainability of code
+
+    const { searchParams } = new URL(request.url)
+    const unitId = searchParams.get('unit_id')  // ← NEW
+
     let query: string
     let params: string[]
 
-    if (user.role === 'tenant') {
-      // Tenants see only their own requests
-      //Future rec: Can create a view for this? will increase performance and reduce complexity in code
+    if (unitId) {
+      // ← NEW: Filter by unit_id (for lease detail page)
+      query = `
+        SELECT 
+          mr.*,
+          u.unit_number,
+          p.title as property_title,
+          prof.full_name as tenant_name
+        FROM maintenance_requests mr
+        JOIN units u ON mr.unit_id = u.id
+        JOIN properties p ON u.property_id = p.id
+        JOIN profiles prof ON mr.tenant_id = prof.id
+        WHERE mr.unit_id = $1
+        ORDER BY mr.created_at DESC
+      `
+      params = [unitId]
 
+    } else if (user.role === 'tenant') {
+      // Tenants see only their own requests
       query = `
         SELECT 
           mr.*,
@@ -124,7 +218,6 @@ export async function GET(request: NextRequest) {
 
     } else if (user.role === 'landlord') {
       // Landlords see all requests for their properties
-      //same for here we can add a view ho saka hai behrta ho and meets deliverables
       query = `
         SELECT 
           mr.*,
@@ -156,10 +249,10 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, params)
 
-  return NextResponse.json({
-  requests: result.rows,  // Changed from maintenance_requests
-  count: result.rows.length
-})
+    return NextResponse.json({
+      requests: result.rows,
+      count: result.rows.length
+    })
 
   } catch (err: unknown) {
     const error = err as Error
