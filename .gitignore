@@ -2,7 +2,7 @@
 *.md
 !logs.md
 !README.md
-
+! docs/API_Routes__Detailed.md
 # Dependencies
 **/node_modules/
 
