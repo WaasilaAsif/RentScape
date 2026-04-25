@@ -131,11 +131,11 @@ export default function PaymentsPage() {
   }
 
   const stats = {
-    collected: payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
-    pending: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
-    overdue: payments.filter(p => p.status === 'overdue').reduce((sum, p) => sum + p.amount, 0),
-    waived: payments.filter(p => p.status === 'waived').reduce((sum, p) => sum + p.amount, 0),
-  }
+  collected: payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0),
+  pending: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + Number(p.amount), 0),
+  overdue: payments.filter(p => p.status === 'overdue').reduce((sum, p) => sum + Number(p.amount), 0),
+  waived: payments.filter(p => p.status === 'waived').reduce((sum, p) => sum + Number(p.amount), 0),
+}
 
   const pendingPayments = payments.filter(p => p.status === 'pending')
   const overduePayments = payments.filter(p => p.status === 'overdue')
@@ -219,25 +219,25 @@ export default function PaymentsPage() {
             <Card title="Collected">
               <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
                 <p className="text-sm font-medium text-green-100">Total Collected</p>
-                <p className="mt-2 text-3xl font-bold">PKR {stats.collected.toLocaleString()}</p>
+                <p className="mt-2 text-3xl font-bold">PKR {Math.round(stats.collected).toLocaleString('en-PK')}</p>
               </div>
             </Card>
             <Card title="Pending">
               <div className="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 p-6 border border-amber-200/50">
                 <p className="text-sm font-medium text-amber-900">Awaiting Payment</p>
-                <p className="mt-2 text-3xl font-bold text-amber-600">PKR {stats.pending.toLocaleString()}</p>
+                <p className="mt-2 text-3xl font-bold text-amber-600">PKR {Math.round(stats.pending).toLocaleString('en-PK')}</p>
               </div>
             </Card>
             <Card title="Overdue">
               <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-6 border border-red-200/50">
                 <p className="text-sm font-medium text-red-900">Overdue</p>
-                <p className="mt-2 text-3xl font-bold text-red-600">PKR {stats.overdue.toLocaleString()}</p>
+                <p className="mt-2 text-3xl font-bold text-red-600">PKR {Math.round(stats.overdue).toLocaleString('en-PK')}</p>
               </div>
             </Card>
             <Card title="Waived">
               <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-6 border border-slate-200/50">
                 <p className="text-sm font-medium text-slate-700">Forgiven</p>
-                <p className="mt-2 text-3xl font-bold text-slate-600">PKR {stats.waived.toLocaleString()}</p>
+                <p className="mt-2 text-3xl font-bold text-slate-600">PKR {Math.round(stats.waived).toLocaleString('en-PK')}</p>
               </div>
             </Card>
           </div>
@@ -249,7 +249,7 @@ export default function PaymentsPage() {
           ) : (
             <>
               {overduePayments.length > 0 && (
-                <Card title="⚠️ Overdue Payments" description={`${overduePayments.length} payments overdue`}>
+                <Card title="Overdue Payments" description={`${overduePayments.length} payments overdue`}>
                   <div className="space-y-3">
                     {overduePayments.map(payment => (
                       <div key={payment.id} className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -268,7 +268,7 @@ export default function PaymentsPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-red-600">
-                              PKR {payment.amount.toLocaleString()}
+                              PKR {Math.round(Number(payment.amount)).toLocaleString('en-PK')}
                             </p>
                             <div className="mt-2 flex gap-2">
                               <button
@@ -314,7 +314,7 @@ export default function PaymentsPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-blue-600">
-                              PKR {payment.amount.toLocaleString()}
+                              PKR {Math.round(Number(payment.amount)).toLocaleString('en-PK')}
                             </p>
                             <div className="mt-2 flex gap-2">
                               <button
@@ -365,7 +365,7 @@ export default function PaymentsPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-slate-700">
-                              PKR {payment.amount.toLocaleString()}
+                              PKR {Math.round(Number(payment.amount)).toLocaleString('en-PK')}
                             </p>
                             <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${
                               payment.status === 'paid' 

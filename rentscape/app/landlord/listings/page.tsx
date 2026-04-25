@@ -1,11 +1,11 @@
 'use client'
-
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Card } from '@/components/ui/Card'
 import { Topbar } from '@/components/dashboard/Topbar'
-
+const LocationPicker = dynamic(() => import('@/components/LocationPicker'), { ssr: false })
 type Property = {
   id: string
   title: string
@@ -127,29 +127,40 @@ export default function ListingsPage() {
 
           {showForm && (
             <Card title="Create Property" description="Add a new building or complex (you'll add units in the next step)">
-              <form onSubmit={handleCreateProperty} className="grid gap-4 md:grid-cols-2">
+            <form onSubmit={handleCreateProperty} className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Property Title</label>
                 <input
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Property Title (e.g., Sunset Apartments)"
+                  className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                  placeholder="e.g., Sunset Apartments"
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
                   required
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">City</label>
                 <input
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="City"
+                  className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                  placeholder="e.g., Islamabad"
                   value={form.city}
                   onChange={e => setForm({ ...form, city: e.target.value })}
                   required
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Area <span className="text-slate-400">(optional)</span></label>
                 <input
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Area (e.g., F-7)"
+                  className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                  placeholder="e.g., F-7"
                   value={form.area}
                   onChange={e => setForm({ ...form, area: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Property Type</label>
                 <select
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
                   value={form.property_type}
                   onChange={e => setForm({ ...form, property_type: e.target.value as PropertyForm['property_type'] })}
                 >
@@ -159,54 +170,47 @@ export default function ListingsPage() {
                   <option value="commercial">Commercial</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Total Units</label>
                 <input
                   type="number"
                   min="1"
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Total Units (you'll add them next)"
+                  className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
                   value={form.total_units}
                   onChange={e => setForm({ ...form, total_units: Number(e.target.value) })}
                   required
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Max Occupants Per Unit</label>
                 <input
                   type="number"
                   min="1"
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Max Occupants Per Unit"
+                  className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
                   value={form.max_occupants_per_unit}
                   onChange={e => setForm({ ...form, max_occupants_per_unit: Number(e.target.value) })}
                   required
                 />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="any"
-                    className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                    placeholder="Latitude"
-                    value={form.lat}
-                    onChange={e => setForm({ ...form, lat: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                    placeholder="Longitude"
-                    value={form.lng}
-                    onChange={e => setForm({ ...form, lng: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                  >
-                    {submitting ? 'Creating...' : 'Create Property & Add Units'}
-                  </button>
-                </div>
-              </form>
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-xs font-medium text-blue-800">Property Location</label>
+                <LocationPicker
+                  lat={Number(form.lat)}
+                  lng={Number(form.lng)}
+                  onChange={(lat, lng) => setForm({ ...form, lat: String(lat), lng: String(lng) })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {submitting ? 'Creating...' : 'Create Property & Add Units'}
+                </button>
+              </div>
+            </form>
               {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
             </Card>
           )}

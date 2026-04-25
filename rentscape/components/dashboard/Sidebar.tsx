@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { resetCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentUser, resetCurrentUser } from "@/hooks/useCurrentUser";
 
 type DashboardRole = "tenant" | "landlord";
 
-const navItems: Record<DashboardRole, Array<{ label: string; href: string; sub?: string }>> = {
+const navItems: Record<DashboardRole, Array<{ label: string; href: string }>> = {
   tenant: [
     { label: "Dashboard", href: "/tenant/dashboard" },
     { label: "Leases", href: "/tenant/leases" },
@@ -17,11 +16,11 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string; sub?:
     { label: "Search", href: "/tenant/search" },
   ],
   landlord: [
-  { label: "Dashboard", href: "/landlord" },
-  { label: "Listings", href: "/landlord/listings" },
-  { label: "Leases", href: "/landlord/leases" },
-  { label: "Maintenance", href: "/landlord/maintenance" }, 
-  { label: "Payments", href: "/landlord/payments" },
+    { label: "Dashboard", href: "/landlord" },
+    { label: "Listings", href: "/landlord/listings" },
+    { label: "Leases", href: "/landlord/leases" },
+    { label: "Maintenance", href: "/landlord/maintenance" },
+    { label: "Payments", href: "/landlord/payments" },
   ],
 };
 
@@ -36,20 +35,26 @@ interface SidebarProps {
   role: DashboardRole;
 }
 
+const MIN_WIDTH = 60;
+const MAX_WIDTH = 360;
+const DEFAULT_WIDTH = 288; // w-72
+
 export function Sidebar({ role }: SidebarProps) {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
   const { user, isLoading: userLoading } = useCurrentUser();
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const isCollapsed = width < 120;
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(DEFAULT_WIDTH);
 
   const userName = useMemo(() => {
     const rawName = user?.full_name || user?.email || "Guest";
     return rawName.includes("@") ? rawName.split("@")[0] : rawName;
   }, [user]);
 
-  useEffect(() => {
-  console.log("user object:", user);
-}, [user]);
   useEffect(() => {
     if (role === "landlord") {
       fetch("/api/properties?mine=true")
@@ -59,15 +64,43 @@ export function Sidebar({ role }: SidebarProps) {
     }
   }, [role]);
 
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [width]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = e.clientX - startX.current;
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth.current + delta));
+      setWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      // Snap to collapsed or open
+      setWidth(prev => prev < 120 ? MIN_WIDTH : DEFAULT_WIDTH);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
   async function handleLogout() {
     setLoggingOut(true);
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || payload?.message || "Logout failed.");
-      }
-      resetCurrentUser(); // clears the stale user before redirect
+      if (!response.ok) throw new Error("Logout failed.");
+      resetCurrentUser();
       router.push("/login");
       router.refresh();
     } finally {
@@ -76,79 +109,84 @@ export function Sidebar({ role }: SidebarProps) {
   }
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">
-      <div className="space-y-2">
-        <p className="text-sm uppercase tracking-widest text-blue-600 font-semibold">RentScape</p>
-        <h2 className="text-2xl font-bold text-blue-900">
-          {role === "tenant" ? "Tenant Hub" : "Landlord Hub"}
-        </h2>
-      </div>
+    <aside
+      style={{ width }}
+      className="sidebar-scroll sticky top-0 hidden h-screen shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-3 py-8 lg:flex transition-none relative"
+    >
+      {/* Content — hide when collapsed */}
+      {!isCollapsed && (
+        <>
+          <div className="space-y-2 px-3">
+            <p className="text-sm uppercase tracking-widest text-blue-600 font-semibold">RentScape</p>
+            <h2 className="text-2xl font-bold text-blue-900">
+              {role === "tenant" ? "Tenant Hub" : "Landlord Hub"}
+            </h2>
+          </div>
 
-      <nav className="flex flex-1 flex-col gap-1">
-        {navItems[role].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-xl px-4 py-2 text-sm font-medium text-blue-800 transition hover:bg-blue-100/60 hover:text-blue-900"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+          <nav className="flex flex-1 flex-col gap-1">
+            {navItems[role].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-blue-800 transition hover:bg-blue-100/60 hover:text-blue-900"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-      {role === "landlord" && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-blue-900">Your Properties</h3>
-          {properties.length > 0 ? (
-            <ul className="space-y-2">
-              {properties.map((prop) => (
-                <li key={prop.id}>
-                  <Link
-                    href={`/properties/${prop.id}`}
-                    className="block rounded-lg px-3 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-200/50 hover:text-blue-900 truncate"
-                  >
-                    {prop.title} - {prop.city}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-blue-600">No properties yet.</p>
+          {role === "landlord" && (
+            <div className="space-y-3 px-3">
+              <h3 className="text-sm font-semibold text-blue-900">Your Properties</h3>
+              {properties.length > 0 ? (
+                <ul className="space-y-2">
+                  {properties.map((prop) => (
+                    <li key={prop.id}>
+                      <Link
+                        href={`/properties/${prop.id}`}
+                        className="block rounded-lg px-3 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-200/50 hover:text-blue-900 truncate"
+                      >
+                        {prop.title} - {prop.city}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-blue-600">No properties yet.</p>
+              )}
+            </div>
           )}
-        </div>
+
+          <div className="rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-200/50 p-4 text-sm text-blue-900 mx-3">
+            <p className="font-semibold mb-1">
+              Welcome,{" "}
+              {userLoading ? (
+                <span className="inline-block h-4 w-20 animate-pulse rounded bg-blue-200/60 align-middle" />
+              ) : userName}!
+            </p>
+            <p className="text-blue-700/80">
+              {role === "tenant"
+                ? "Check your upcoming stays and active rental agreements."
+                : "Your portfolio overview and active rentals appear here."}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="mx-3 w-auto rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-100/70 disabled:opacity-60"
+          >
+            {loggingOut ? "Logging out..." : "Logout"}
+          </button>
+        </>
       )}
 
-      {/* 3. Personalized User Section */}
-      <div className="rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-200/50 p-4 text-sm text-blue-900">
-        <p className="font-semibold mb-1">
-          Welcome,{" "}
-          {userLoading ? (
-            <span className="inline-block h-4 w-20 animate-pulse rounded bg-blue-200/60 align-middle" />
-          ) : (
-            userName
-          )}
-          !
-        </p>
-        {role === "tenant" ? (
-          <p className="text-blue-700/80">
-            Check your upcoming stays and active rental agreements.
-          </p>
-        ) : (
-          <p className="text-blue-700/80">
-            Your portfolio overview and active rentals appear here.
-          </p>
-        )}
-      </div>
-
-      <button
-        type="button"
-        onClick={handleLogout}
-        disabled={loggingOut}
-        className="w-full rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-100/70 disabled:opacity-60"
-      >
-        {loggingOut ? "Logging out..." : "Logout"}
-      </button>
-
+      {/* Drag handle */}
+      <div
+        onMouseDown={onMouseDown}
+        className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-300/50 transition-colors"
+      />
     </aside>
   );
 }
