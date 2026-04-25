@@ -6,6 +6,7 @@ CREATE TABLE public.amenities (
   name text NOT NULL UNIQUE,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT amenities_pkey PRIMARY KEY (id)
+  
 );
 CREATE TABLE public.audit_log (
   id bigint NOT NULL DEFAULT nextval('audit_log_id_seq'::regclass),

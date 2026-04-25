@@ -187,36 +187,74 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (user.role !== 'landlord') {
+    // Allow both landlord and tenant to fetch leases
+    const { searchParams } = new URL(request.url)
+    const statusFilter = searchParams.get('status') // e.g., "expired,terminated"
+
+    let query: string
+    let params: any[]
+
+    if (user.role === 'landlord') {
+      // Landlords see leases for their properties
+      query = `
+        SELECT 
+          l.*,
+          u.unit_number,
+          p.id as property_id,
+          p.title as property_title,
+          prof.full_name as tenant_name
+        FROM leases l
+        JOIN units u ON l.unit_id = u.id
+        JOIN properties p ON u.property_id = p.id
+        JOIN profiles prof ON l.tenant_id = prof.id
+        WHERE p.landlord_id = $1
+      `
+      params = [user.id]
+
+      // Add status filter if provided
+      if (statusFilter) {
+        const statuses = statusFilter.split(',').map(s => s.trim())
+        query += ` AND l.status = ANY($2)`
+        params.push(statuses)
+      }
+
+      query += ` ORDER BY l.created_at DESC`
+
+    } else if (user.role === 'tenant') {
+      // Tenants see only their own leases
+      query = `
+        SELECT 
+          l.*,
+          u.unit_number,
+          p.id as property_id,
+          p.title as property_title,
+          p.landlord_id,
+          landlord.full_name as landlord_name
+        FROM leases l
+        JOIN units u ON l.unit_id = u.id
+        JOIN properties p ON u.property_id = p.id
+        JOIN profiles landlord ON p.landlord_id = landlord.id
+        WHERE l.tenant_id = $1
+      `
+      params = [user.id]
+
+      // Add status filter if provided
+      if (statusFilter) {
+        const statuses = statusFilter.split(',').map(s => s.trim())
+        query += ` AND l.status = ANY($2)`
+        params.push(statuses)
+      }
+
+      query += ` ORDER BY l.created_at DESC`
+
+    } else {
       return NextResponse.json(
-        { error: 'Only landlords can view leases' },
+        { error: 'Invalid role' },
         { status: 403 }
       )
     }
 
-    // Query all leases for properties owned by this landlord
-    // Joins multiple tables to get readable data
-    const result = await pool.query(
-      `SELECT 
-        l.id, 
-        l.unit_id, 
-        l.tenant_id, 
-        l.monthly_rent, 
-        l.start_date, 
-        l.end_date, 
-        l.status, 
-        l.created_at,
-        u.unit_number,
-        p.title as property_title,
-        prof.full_name as tenant_name
-       FROM leases l
-       JOIN units u ON l.unit_id = u.id
-       JOIN properties p ON u.property_id = p.id
-       JOIN profiles prof ON l.tenant_id = prof.id
-       WHERE p.landlord_id = $1
-       ORDER BY l.created_at DESC`,
-      [user.id]
-    )
+    const result = await pool.query(query, params)
 
     return NextResponse.json({ 
       leases: result.rows,

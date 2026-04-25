@@ -96,21 +96,32 @@ export default function TenantProfilePage() {
   }
 
   async function loadRatableLeases() {
-    try {
+    // try {
       // Get completed/expired leases for this tenant
-      const response = await fetch('/api/leases', { cache: 'no-store' })
-      if (!response.ok) return
+    //   const response = await fetch('/api/leases', { cache: 'no-store' })
+    //   if (!response.ok) return
       
-      const data = await response.json()
-      const completedLeases = (data.leases || []).filter(
-        (l: { status?: string }) => l.status === 'expired' || l.status === 'terminated'
-      )
+    //   const data = await response.json()
+    //   const completedLeases = (data.leases || []).filter(
+    //     (l: { status?: string }) => l.status === 'expired' || l.status === 'terminated'
+    //   )
       
-      setRatableItems(completedLeases)
-    } catch (err) {
-      console.error('Failed to load ratable leases:', err)
-    }
+    //   setRatableItems(completedLeases)
+    // } catch (err) {
+    //   console.error('Failed to load ratable leases:', err)
+    // }
+      try {
+    // Instead of fetching ALL leases then filtering client-side,
+    // add a status filter to the API
+    const response = await fetch('/api/leases?status=expired,terminated', { cache: 'no-store' })
+    if (!response.ok) return
+    
+    const data = await response.json()
+    setRatableItems(data.leases || [])
+  } catch (err) {
+    console.error('Failed to load ratable leases:', err)
   }
+}
 
   async function loadGivenRatings() {
     try {
@@ -123,6 +134,7 @@ export default function TenantProfilePage() {
       console.error('Failed to load given ratings:', err)
     }
   }
+  
 
   useEffect(() => {
     loadProfile()
