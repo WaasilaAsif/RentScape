@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 
 export type MapMarker = {
   id: string
@@ -39,15 +38,6 @@ function MapClickHandler({
   return null
 }
 
-const markerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
-
 export default function PropertyMap({
   center,
   markers,
@@ -58,6 +48,15 @@ export default function PropertyMap({
 }: PropertyMapProps) {
   const [temporaryMarker, setTemporaryMarker] = useState<[number, number] | null>(null)
 
+  const markerIcon = useMemo(() => new L.Icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  }), [])
+
   const safeCenter = useMemo<[number, number]>(() => {
     if (!Number.isFinite(center[0]) || !Number.isFinite(center[1])) {
       return [33.6844, 73.0479]
@@ -67,12 +66,20 @@ export default function PropertyMap({
 
   return (
     <div className={`${heightClassName} w-full overflow-hidden rounded-2xl border border-white/15`}>
-      <MapContainer center={safeCenter} zoom={zoom} scrollWheelZoom className="h-full w-full">
+      <MapContainer
+        key={`map-${safeCenter[0]}-${safeCenter[1]}`}
+        center={safeCenter}
+        zoom={zoom}
+        scrollWheelZoom
+        className="h-full w-full"
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {onMapClick ? <MapClickHandler onMapClick={onMapClick} onSetTemporaryMarker={setTemporaryMarker} /> : null}
+        {onMapClick ? (
+          <MapClickHandler onMapClick={onMapClick} onSetTemporaryMarker={setTemporaryMarker} />
+        ) : null}
         {markers.map(marker => (
           <Marker
             key={marker.id}

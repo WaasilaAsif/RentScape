@@ -212,7 +212,7 @@ export default function MaintenancePage() {
                 </Card>
               )}
 
-              <Card title="✅ Resolved Requests" description="Recently completed">
+              <Card title="Resolved Requests" description="Recently completed">
                 {resolvedRequests.length === 0 ? (
                   <p className="text-slate-600 py-8 text-center">No resolved requests yet.</p>
                 ) : (

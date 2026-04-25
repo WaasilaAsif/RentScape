@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar").then(mod => ({ default: mod.Sidebar })), {
   ssr: false,
   loading: () => (
-    <aside className="hidden w-72 shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">
+    <aside className="hidden w-72 shrink-0 flex-col gap-8 overflow-y-auto sidebar-scroll border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-6 py-8 lg:flex">
       <div className="space-y-2">
         <p className="text-sm uppercase tracking-widest text-blue-600">RentScape</p>
         <h2 className="text-2xl font-bold text-blue-900">Loading...</h2>

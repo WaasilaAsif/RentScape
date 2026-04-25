@@ -121,6 +121,15 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    const mine = searchParams.get('mine') === 'true'
+    // Get landlord id if mine=true
+    let landlordId: string | null = null
+    if (mine) {
+      const user = await getSession()
+      if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      landlordId = user.id
+    }
+
     let query = `
       SELECT 
         id, landlord_id, title, city, area, property_type,
@@ -133,6 +142,12 @@ export async function GET(request: NextRequest) {
     `
     const params: (string | number)[] = [] 
     let paramCount = 1
+
+    if (landlordId) {
+      query += ` AND landlord_id = $${paramCount}::uuid`
+      params.push(landlordId)
+      paramCount++
+    }
 
     if (city) {
       query += ` AND city = $${paramCount}`

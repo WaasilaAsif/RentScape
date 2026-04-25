@@ -47,6 +47,7 @@ export function PropertyTypesChart({ data }: PropertyTypesChartProps) {
           outerRadius={90}
           fill="#0474C4"
           dataKey="count"
+          nameKey="type" 
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
