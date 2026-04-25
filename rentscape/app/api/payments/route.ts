@@ -79,3 +79,75 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+import { z } from 'zod'
+
+const createPaymentSchema = z.object({
+  lease_id: z.string().uuid(),
+  amount: z.number().min(0),
+  due_date: z.string(), // ISO date format
+  notes: z.string().optional(),
+  status: z.enum(['pending', 'paid', 'overdue', 'waived']).default('pending')
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getUserWithRole()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (user.role !== 'landlord') {
+      return NextResponse.json({ error: 'Only landlords can create payments' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const validated = createPaymentSchema.parse(body)
+
+    // Verify landlord owns the property for this lease
+    const ownerCheck = await pool.query<{ landlord_id: string }>(
+      `SELECT p.landlord_id
+       FROM leases l
+       JOIN units u ON l.unit_id = u.id
+       JOIN properties p ON u.property_id = p.id
+       WHERE l.id = $1`,
+      [validated.lease_id]
+    )
+
+    if (!ownerCheck.rows[0]) {
+      return NextResponse.json({ error: 'Lease not found' }, { status: 404 })
+    }
+
+    if (ownerCheck.rows[0].landlord_id !== user.id) {
+      return NextResponse.json(
+        { error: 'You do not own the property for this lease' },
+        { status: 403 }
+      )
+    }
+
+    // Create payment
+    const result = await pool.query(
+      `INSERT INTO payments (lease_id, amount, due_date, status, notes)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [validated.lease_id, validated.amount, validated.due_date, validated.status, validated.notes]
+    )
+
+    return NextResponse.json({ payment: result.rows[0] }, { status: 201 })
+
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: err.issues },
+        { status: 400 }
+      )
+    }
+
+    const error = err as Error
+    console.error('POST /api/payments error:', error.message)
+    return NextResponse.json(
+      { error: 'Failed to create payment', message: error.message },
+      { status: 500 }
+    )
+  }
+}
