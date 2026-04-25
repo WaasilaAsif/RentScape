@@ -17,6 +17,7 @@ const playfair = Playfair_Display({
 })
 
 type Role = 'tenant' | 'landlord'
+
 export default function AdminAuthSlider() {
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim()
   const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim()
@@ -26,6 +27,7 @@ export default function AdminAuthSlider() {
       : null
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(true)
+  const [signupStep, setSignupStep] = useState(1) // 1: Account, 2: Profile, 3: Emergency
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
@@ -34,24 +36,50 @@ export default function AdminAuthSlider() {
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [signupForm, setSignupForm] = useState({
+    // Step 1: Account
     role: 'tenant' as Role,
-    full_name: '',
     email: '',
     password: '',
     confirm_password: '',
+    // Step 2: Profile
+    full_name: '',
+    phone: '',
+    cnic: '',
+    address: '',
+    // Step 3: Emergency (optional)
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
   })
 
   const switchToSignIn = () => {
     setIsSignUp(false)
+    setSignupStep(1)
     setError(null)
   }
 
   const switchToSignUp = () => {
     setIsSignUp(true)
+    setSignupStep(1)
     setError(null)
   }
 
+  // Validation helpers
+  function validateEmail(email: string): boolean {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return re.test(email)
+  }
 
+  function validatePhone(phone: string): boolean {
+    // Pakistan phone: 11 digits starting with 0, or 10 digits without 0
+    const re = /^(0\d{10}|\d{10})$/
+    return re.test(phone.replace(/[\s-]/g, ''))
+  }
+
+  function validateCNIC(cnic: string): boolean {
+    // Pakistan CNIC: 13 digits, format: XXXXX-XXXXXXX-X
+    const clean = cnic.replace(/[-\s]/g, '')
+    return /^\d{13}$/.test(clean)
+  }
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
@@ -67,27 +95,95 @@ export default function AdminAuthSlider() {
       return
     }
 
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (signInError) {
-    setError(signInError.message)
-    setLoading(false)
-    return
-        }
+      setError(signInError.message)
+      setLoading(false)
+      return
+    }
 
     if (data?.user) {
-    const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', data.user.id)
-    .single()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
 
-  setLoading(false)
-  router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+      setLoading(false)
+      router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+    }
+  }
+
+  function formatCNIC(value: string): string {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '')
+  
+  // Format: XXXXX-XXXXXXX-X
+  if (digits.length <= 5) {
+    return digits
+  } else if (digits.length <= 12) {
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`
+  } else {
+    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`
+  }
 }
+
+  function validateStep1(): boolean {
+    if (!validateEmail(signupForm.email)) {
+      setError('Please enter a valid email address.')
+      return false
+    }
+    if (signupForm.password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return false
+    }
+    if (signupForm.password !== signupForm.confirm_password) {
+      setError('Passwords do not match.')
+      return false
+    }
+    return true
+  }
+
+ function validateStep2(): boolean {
+  if (signupForm.full_name.trim().length < 3) {
+    setError('Full name must be at least 3 characters.')
+    return false
+  }
+  if (!signupForm.cnic || !validateCNIC(signupForm.cnic)) {
+    setError('CNIC is required and must be 13 digits (format: XXXXX-XXXXXXX-X).')
+    return false
+  }
+  if (signupForm.phone && !validatePhone(signupForm.phone)) {
+    setError('Phone number must be 10-11 digits (Pakistan format).')
+    return false
+  }
+  return true
+}
+
+  function handleNextStep() {
+    setError(null)
+    
+    if (signupStep === 1) {
+      if (!validateStep1()) return
+      setSignupStep(2)
+    } else if (signupStep === 2) {
+      if (!validateStep2()) return
+      setSignupStep(3)
+    }
+  }
+
+  function handlePrevStep() {
+    setError(null)
+    setSignupStep(prev => Math.max(1, prev - 1))
   }
 
   async function handleSignup(e: FormEvent) {
@@ -97,26 +193,26 @@ export default function AdminAuthSlider() {
       return
     }
 
-    if (signupForm.password !== signupForm.confirm_password) {
-      setError('Passwords do not match.')
-      return
-    }
-
-    if (signupForm.password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
-
     setLoading(true)
     setError(null)
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    // Clean phone and CNIC
+    const cleanPhone = signupForm.phone.replace(/[\s-]/g, '')
+    const cleanCNIC = signupForm.cnic.replace(/[\s-]/g, '')
+
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: signupForm.email.trim(),
       password: signupForm.password,
       options: {
         data: {
           full_name: signupForm.full_name.trim(),
           role: signupForm.role,
+          phone: cleanPhone || null,
+          cnic: cleanCNIC ,
+          address: signupForm.address.trim() || null,
+          emergency_contact_name: signupForm.emergency_contact_name.trim() || null,
+          emergency_contact_phone: signupForm.emergency_contact_phone.replace(/[\s-]/g, '') || null,
         },
       },
     })
@@ -127,7 +223,10 @@ export default function AdminAuthSlider() {
       return
     }
 
-    router.push(signupForm.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+    if (data?.user) {
+      setLoading(false)
+      router.push(signupForm.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
+    }
   }
 
   return (
@@ -139,7 +238,6 @@ export default function AdminAuthSlider() {
           color-scheme: dark;
         }
 
-        /* Matches app/(dashboard)/layout.tsx bg-anim — same palette as the dashboard shell */
         @keyframes auth-gradient-shift {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
@@ -153,7 +251,6 @@ export default function AdminAuthSlider() {
           animation: auth-gradient-shift 14s ease infinite;
         }
 
-        /* In-flow sizer: children are all position:absolute; without this the shell collapses to a thin strip in flex layouts. */
         .auth-shell-sizer {
           position: relative;
           z-index: 0;
@@ -248,7 +345,7 @@ export default function AdminAuthSlider() {
           justify-content: center;
           padding: clamp(24px, 5vh, 56px) clamp(18px, 3vw, 40px);
           overflow-x: hidden;
-          overflow-y: hidden;
+          overflow-y: auto;
           -webkit-overflow-scrolling: touch;
           box-sizing: border-box;
           transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
@@ -310,6 +407,27 @@ export default function AdminAuthSlider() {
           line-height: 1.8;
         }
 
+        .step-indicator {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 24px;
+          justify-content: center;
+        }
+
+        .step-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.2);
+          transition: all 0.3s ease;
+        }
+
+        .step-dot.active {
+          width: 28px;
+          border-radius: 5px;
+          background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+        }
+
         .input-field {
           width: 100%;
           margin-bottom: 18px;
@@ -368,6 +486,31 @@ export default function AdminAuthSlider() {
           box-shadow: 0 22px 52px rgba(79, 70, 229, 0.38);
         }
 
+        .button.secondary {
+          background: rgba(255, 255, 255, 0.08);
+          color: #f8fafc;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .button.secondary:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.12);
+        }
+
+        .button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .button-row {
+          display: flex;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .button-row .button {
+          flex: 1;
+        }
+
         .cta-center {
           max-width: 360px;
           margin-left: auto;
@@ -417,7 +560,6 @@ export default function AdminAuthSlider() {
           z-index: 0;
         }
 
-        /* Move by full "wide" band in parent space: (-wide/narrow)*100% of this element's width */
         .auth-shell.right-panel-active .overlay-container {
           transform: translateX(calc(-100% * 60 / 40));
         }
@@ -686,108 +828,222 @@ export default function AdminAuthSlider() {
           </button>
         </div>
 
+        {/* SIGN UP CONTAINER */}
         <div className="form-container sign-up-container">
           <div className="form-card">
             <h1 className="display-serif">Create Account</h1>
-            <p>Sign up to manage your rentals, payments, and maintenance from a refined dashboard.</p>
+            <p>
+              {signupStep === 1 && 'Set up your account credentials'}
+              {signupStep === 2 && 'Complete your profile information'}
+              {signupStep === 3 && 'Add emergency contact (optional)'}
+            </p>
+
+            <div className="step-indicator">
+              <div className={`step-dot ${signupStep === 1 ? 'active' : ''}`} />
+              <div className={`step-dot ${signupStep === 2 ? 'active' : ''}`} />
+              <div className={`step-dot ${signupStep === 3 ? 'active' : ''}`} />
+            </div>
+
             {error && isSignUp && <div className="error-box">{error}</div>}
-            <form onSubmit={handleSignup}>
-              <div className="input-field">
-                <label className="control-label">Account type</label>
-                <select
-                  className="input"
-                  value={signupForm.role}
-                  onChange={e => {
-                    setError(null)
-                    setSignupForm({ ...signupForm, role: e.target.value as Role })
-                  }}
-                >
-                  <option value="tenant">Tenant</option>
-                  <option value="landlord">Landlord</option>
-                </select>
-              </div>
-              <div className="input-field">
-                <label className="control-label">Full name</label>
-                <input
-                  className="input"
-                  type="text"
-                  value={signupForm.full_name}
-                  onChange={e => {
-                    setError(null)
-                    setSignupForm({ ...signupForm, full_name: e.target.value })
-                  }}
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
-              <div className="input-field">
-                <label className="control-label">Email</label>
-                <input
-                  className="input"
-                  type="email"
-                  value={signupForm.email}
-                  onChange={e => {
-                    setError(null)
-                    setSignupForm({ ...signupForm, email: e.target.value })
-                  }}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              <div className="input-field">
-                <label className="control-label">Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    className="input"
-                    type={showSignupPassword ? 'text' : 'password'}
-                    value={signupForm.password}
-                    onChange={e => {
-                      setError(null)
-                      setSignupForm({ ...signupForm, password: e.target.value })
-                    }}
-                    placeholder="Minimum 8 characters"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSignupPassword(v => !v)}
-                    style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#f8fafc', cursor: 'pointer' }}
-                  >
-                    {showSignupPassword ? 'Hide' : 'Show'}
+
+            <form onSubmit={signupStep === 3 ? handleSignup : (e) => { e.preventDefault(); handleNextStep(); }}>
+              {/* STEP 1: Account */}
+              {signupStep === 1 && (
+                <>
+                  <div className="input-field">
+                    <label className="control-label">Account type *</label>
+                    <select
+                      className="input"
+                      value={signupForm.role}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, role: e.target.value as Role })
+                      }}
+                    >
+                      <option value="tenant">Tenant</option>
+                      <option value="landlord">Landlord</option>
+                    </select>
+                  </div>
+                  <div className="input-field">
+                    <label className="control-label">Email *</label>
+                    <input
+                      className="input"
+                      type="email"
+                      value={signupForm.email}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, email: e.target.value })
+                      }}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label className="control-label">Password *</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className="input"
+                        type={showSignupPassword ? 'text' : 'password'}
+                        value={signupForm.password}
+                        onChange={e => {
+                          setError(null)
+                          setSignupForm({ ...signupForm, password: e.target.value })
+                        }}
+                        placeholder="Minimum 8 characters"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(v => !v)}
+                        style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        {showSignupPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="input-field">
+                    <label className="control-label">Confirm password *</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className="input"
+                        type={showConfirm ? 'text' : 'password'}
+                        value={signupForm.confirm_password}
+                        onChange={e => {
+                          setError(null)
+                          setSignupForm({ ...signupForm, confirm_password: e.target.value })
+                        }}
+                        placeholder="Confirm your password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(v => !v)}
+                        style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        {showConfirm ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                  <button className="button primary" type="submit">
+                    Next
                   </button>
-                </div>
-              </div>
-              <div className="input-field">
-                <label className="control-label">Confirm password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    className="input"
-                    type={showConfirm ? 'text' : 'password'}
-                    value={signupForm.confirm_password}
-                    onChange={e => {
-                      setError(null)
-                      setSignupForm({ ...signupForm, confirm_password: e.target.value })
-                    }}
-                    placeholder="Confirm your password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(v => !v)}
-                    style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#f8fafc', cursor: 'pointer' }}
-                  >
-                    {showConfirm ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-              </div>
-              <button className="button primary cta-center" type="submit" disabled={loading}>
-                {loading ? 'Creating account...' : 'Create Account'}
-              </button>
+                </>
+              )}
+
+              {/* STEP 2: Profile */}
+              {signupStep === 2 && (
+                <>
+                  <div className="input-field">
+                    <label className="control-label">Full name *</label>
+                    <input
+                      className="input"
+                      type="text"
+                      value={signupForm.full_name}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, full_name: e.target.value })
+                      }}
+                      placeholder="Enter your full name"
+                      required
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label className="control-label">Phone (optional)</label>
+                    <input
+                      className="input"
+                      type="tel"
+                      value={signupForm.phone}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, phone: e.target.value })
+                      }}
+                      placeholder="03001234567"
+                    />
+                  </div>
+                <div className="input-field">
+  <label className="control-label">CNIC *</label>
+  <input
+    className="input"
+    type="text"
+    value={signupForm.cnic}
+    onChange={e => {
+      setError(null)
+      const formatted = formatCNIC(e.target.value)
+      setSignupForm({ ...signupForm, cnic: formatted })
+    }}
+    placeholder="12345-1234567-1"
+    required
+  />
+</div>
+                  <div className="input-field">
+                    <label className="control-label">Address (optional)</label>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      value={signupForm.address}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, address: e.target.value })
+                      }}
+                      placeholder="House/Flat number, Street, Area, City"
+                    />
+                  </div>
+                  <div className="button-row">
+                    <button type="button" className="button secondary" onClick={handlePrevStep}>
+                      Back
+                    </button>
+                    <button type="submit" className="button primary">
+                      Next
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* STEP 3: Emergency Contact */}
+              {signupStep === 3 && (
+                <>
+                  <div className="input-field">
+                    <label className="control-label">Emergency contact name</label>
+                    <input
+                      className="input"
+                      type="text"
+                      value={signupForm.emergency_contact_name}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, emergency_contact_name: e.target.value })
+                      }}
+                      placeholder="Full name"
+                    />
+                  </div>
+                  <div className="input-field">
+                    <label className="control-label">Emergency contact phone</label>
+                    <input
+                      className="input"
+                      type="tel"
+                      value={signupForm.emergency_contact_phone}
+                      onChange={e => {
+                        setError(null)
+                        setSignupForm({ ...signupForm, emergency_contact_phone: e.target.value })
+                      }}
+                      placeholder="03001234567"
+                    />
+                  </div>
+                  <div className="button-row">
+                    <button type="button" className="button secondary" onClick={handlePrevStep}>
+                      Back
+                    </button>
+                    <button type="submit" className="button primary" disabled={loading}>
+                      {loading ? 'Creating account...' : 'Create Account'}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
             <p className="small-text">Already registered? Switch back to Sign In using the sliding panel or tabs.</p>
           </div>
         </div>
 
+        {/* SIGN IN CONTAINER */}
         <div className="form-container sign-in-container">
           <div className="form-card">
             <h1 className="display-serif">Sign In</h1>

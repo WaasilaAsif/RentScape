@@ -266,7 +266,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   if (loading) {
     return (
       <DashboardShell role="landlord">
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
           <div className="mx-auto max-w-7xl px-4">
             <p className="text-slate-600">Loading lease details...</p>
           </div>
@@ -278,7 +278,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   if (!lease) {
     return (
       <DashboardShell role="landlord">
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
           <div className="mx-auto max-w-7xl px-4">
             <p className="text-red-600">Lease not found</p>
           </div>
@@ -296,13 +296,11 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <DashboardShell role="landlord">
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
         <div className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
           <Topbar 
             title={`Lease: ${lease.tenant_name}`} 
             subtitle={`${lease.property_title} • Unit ${lease.unit_number}`}
-            backButton
-            backHref="/landlord/leases"
           />
 
           {error && (

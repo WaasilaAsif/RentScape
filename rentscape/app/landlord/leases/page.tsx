@@ -170,7 +170,7 @@ export default function LeasesPage() {
 
   return (
     <DashboardShell role="landlord">
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
         <div className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
           <Topbar title="Lease Management" subtitle="Track and manage all tenant leases" />
 
@@ -183,7 +183,7 @@ export default function LeasesPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+              className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
             >
               {showCreateForm ? 'Cancel' : '+ Create Lease'}
             </button>
@@ -273,7 +273,7 @@ export default function LeasesPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
                   >
                     {submitting ? 'Creating...' : 'Create Lease'}
                   </button>
@@ -284,19 +284,19 @@ export default function LeasesPage() {
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card title="Active">
-              <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
+              <div className="rounded-xl bg-linear-to-br from-green-500 to-green-600 p-6 text-white">
                 <p className="text-sm font-medium text-green-100">Active Leases</p>
                 <p className="mt-2 text-3xl font-bold">{activeLeases.length}</p>
               </div>
             </Card>
             <Card title="Pending">
-              <div className="rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 text-white">
+              <div className="rounded-xl bg-linear-to-br from-yellow-500 to-yellow-600 p-6 text-white">
                 <p className="text-sm font-medium text-yellow-100">Pending Approval</p>
                 <p className="mt-2 text-3xl font-bold">{pendingLeases.length}</p>
               </div>
             </Card>
             <Card title="Expired">
-              <div className="rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 p-6 text-white">
+              <div className="rounded-xl bg-linear-to-br from-slate-500 to-slate-600 p-6 text-white">
                 <p className="text-sm font-medium text-slate-100">Expired</p>
                 <p className="mt-2 text-3xl font-bold">{expiredLeases.length}</p>
               </div>
