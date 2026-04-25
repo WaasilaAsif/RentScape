@@ -15,6 +15,7 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string; sub?:
     { label: "Payments", href: "/tenant/payments" },
     { label: "Maintenance", href: "/tenant/maintenance" },
     { label: "Search", href: "/tenant/search" },
+    {label: "Profile", href: "/tenant/profile" },
   ],
   landlord: [
   { label: "Dashboard", href: "/landlord" },
@@ -22,6 +23,7 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string; sub?:
   { label: "Leases", href: "/landlord/leases" },
   { label: "Maintenance", href: "/landlord/maintenance" }, 
   { label: "Payments", href: "/landlord/payments" },
+  {label: "Profile", href: "/landlord/profile" },
   ],
 };
 
