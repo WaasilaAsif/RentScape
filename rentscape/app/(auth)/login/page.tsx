@@ -454,6 +454,14 @@ export default function AdminAuthSlider() {
           font-size: 0.98rem;
           transition: border-color 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
         }
+        select.input {
+          background: #0d2137;
+        }
+
+        select.input option {
+          background: #0d2137;
+          color: #f8fafc;
+        }
 
         .input:focus {
           outline: none;
