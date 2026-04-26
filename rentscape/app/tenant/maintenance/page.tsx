@@ -160,7 +160,7 @@ export default function TenantMaintenancePage() {
   useEffect(() => {
     async function fetchLease() {
       try {
-        const res = await fetch("/api/leases?active=true");
+        const res = await fetch("/api/leases?status=active");
         const data = await res.json();
         const activeLease = data.leases?.[0] ?? null;
         setLease(activeLease ? {
@@ -182,30 +182,44 @@ export default function TenantMaintenancePage() {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    console.log("lease object:", lease); // 👈 add this
-  console.log("submitting:", {        // 👈 and this
-    unit_id: lease.unit_id,
-    title: data.title,
-    description: `[${data.location}] ${data.description}`,
-    priority: data.priority,
-  });
     try {
+      // 1. Create the maintenance request
       const res = await fetch("/api/maintenance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           unit_id: lease.unit_id,
           title: data.title,
-          // Prepend location to description since DB doesn't have a separate location field
           description: `[${data.location}] ${data.description}`,
           priority: data.priority,
         }),
       });
 
       const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error || "Failed to submit request.");
 
-      if (!res.ok) {
-        throw new Error(payload?.error || "Failed to submit request.");
+      const requestId = payload.maintenance_request.id;
+
+      // 2. Upload images if any
+      if (photos.length > 0) {
+        await Promise.all(
+          photos.map(async (file) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("request_id", requestId);
+
+            const uploadRes = await fetch("/api/maintenance/images", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!uploadRes.ok) {
+              const uploadPayload = await uploadRes.json();
+              console.error("Image upload failed:", uploadPayload.error);
+              // Don't throw — request was created, images are optional
+            }
+          })
+        );
       }
 
       setSubmitted(true);
