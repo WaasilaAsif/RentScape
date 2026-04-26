@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import type { MapMarker } from '@/components/map'
-
+import { useRouter } from 'next/navigation'
 const PropertyMap = dynamic(() => import('@/components/map'), { ssr: false })
 
 type PropertyDetails = {
@@ -28,6 +28,7 @@ type Unit = {
 
 export default function PropertyDetailsPage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const id = params?.id
   const [property, setProperty] = useState<PropertyDetails | null>(null)
   const [units, setUnits] = useState<Unit[]>([])
@@ -68,6 +69,12 @@ export default function PropertyDetailsPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
       <div className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition"
+        >
+          ← Back
+        </button>
         <section className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
           <h1 className="text-3xl font-bold text-slate-900">{property.title}</h1>
           <p className="mt-2 text-slate-600">
