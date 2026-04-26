@@ -25,7 +25,7 @@ export default function TenantPaymentsPage() {
   const loadPayments = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/payments', { cache: 'no-store' })
+      const response = await fetch('/api/payments/tenant', { cache: 'no-store' })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload?.error || 'Failed to load payments')
       setPayments(Array.isArray(payload?.payments) ? payload.payments : [])

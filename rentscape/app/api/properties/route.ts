@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const city = searchParams.get('city')
-    const property_type = searchParams.get('property_type')
+    const q = searchParams.get('q')           // matches frontend
+    const type = searchParams.get('type')     // matches frontend
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -149,15 +149,15 @@ export async function GET(request: NextRequest) {
       paramCount++
     }
 
-    if (city) {
-      query += ` AND city = $${paramCount}`
-      params.push(city)
+    if (q) {
+      query += ` AND (city ILIKE $${paramCount} OR title ILIKE $${paramCount})`
+      params.push(`%${q}%`)
       paramCount++
     }
 
-    if (property_type) {
+    if (type && type !== 'all') {
       query += ` AND property_type = $${paramCount}::property_type`
-      params.push(property_type)
+      params.push(type)
       paramCount++
     }
 
