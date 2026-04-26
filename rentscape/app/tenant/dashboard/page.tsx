@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import dynamic from 'next/dynamic'
@@ -9,6 +10,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Topbar } from '@/components/dashboard/Topbar'
 import { Card } from '@/components/ui/Card'
 import Link from 'next/link'
+import { RatingCard } from '@/components/dashboard/RatingCard'
 
 const PropertyMap = dynamic(() => import('@/components/map'), {
   ssr: false,
@@ -29,6 +31,16 @@ type Property = {
   max_rent?: number | null
 }
 
+type RatableItem = {
+  lease_id: string
+  target_id: string
+  target_name: string
+  target_type: 'landlord' | 'property'| 'tenant'
+  property_title?: string
+  unit_number?: string
+  end_date: string
+}
+
 export default function TenantDashboard() {
   const router = useRouter()
   const pathname = usePathname()
@@ -39,6 +51,9 @@ export default function TenantDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [hasPendingLease, setHasPendingLease] = useState(false)
+  const [ratableLandlords, setRatableLandlords] = useState([])
+  const [ratableProperties, setRatableProperties] = useState([])
+
 
   const syncFiltersToUrl = useCallback(
     (q: string, type: string) => {
@@ -52,7 +67,7 @@ export default function TenantDashboard() {
     },
     [pathname, router]
   )
-
+  
   const loadProperties = useCallback(async (q: string, type: string) => {
     setLoading(true)
     setApiError(null)
@@ -74,7 +89,7 @@ export default function TenantDashboard() {
       setLoading(false)
     }
   }, [])
-
+  
   const resetSearch = useCallback(() => {
     setSearchQuery('')
     setTypeFilter('all')
@@ -139,6 +154,88 @@ export default function TenantDashboard() {
     if (markers.length > 0) return [markers[0].lat, markers[0].lng]
     return [33.6844, 73.0479]
   }, [markers])
+  async function loadRatableItems() {
+    try {
+      const response = await fetch('/api/leases?status=expired,terminated', { cache: 'no-store' })
+      if (!response.ok) return
+      
+      const data = await response.json()
+      
+      // Get already rated items
+      const ratingsResponse = await fetch('/api/ratings', { cache: 'no-store' })
+      const ratingsData = ratingsResponse.ok ? await ratingsResponse.json() : { ratings: [] }
+      
+      const ratedLandlordIds = new Set(
+        ratingsData.ratings
+          .filter((r: any) => r.target_type === 'landlord')
+          .map((r: any) => `${r.lease_id}-${r.target_id}`)
+      )
+      
+      const ratedPropertyIds = new Set(
+        ratingsData.ratings
+          .filter((r: any) => r.target_type === 'property')
+          .map((r: any) => `${r.lease_id}-${r.target_id}`)
+      )
+      
+      // Transform for landlord ratings
+      const landlords = data.leases
+        .filter((lease: any) => !ratedLandlordIds.has(`${lease.id}-${lease.landlord_id}`))
+        .map((lease: any) => ({
+          lease_id: lease.id,
+          target_id: lease.landlord_id,
+          target_name: lease.landlord_name,
+          target_type: 'landlord' as const,
+          property_title: lease.property_title,
+          unit_number: lease.unit_number,
+          end_date: lease.end_date,
+        }))
+      
+      // Transform for property ratings
+      const properties = data.leases
+        .filter((lease: any) => !ratedPropertyIds.has(`${lease.id}-${lease.property_id}`))
+        .map((lease: any) => ({
+          lease_id: lease.id,
+          target_id: lease.property_id,
+          target_name: lease.property_title,
+          target_type: 'property' as const,
+          unit_number: lease.unit_number,
+          end_date: lease.end_date,
+        }))
+      
+      setRatableLandlords(landlords)
+      setRatableProperties(properties)
+    } catch (err) {
+      console.error('Failed to load ratable items:', err)
+    }
+  }
+
+  async function handleRate(item: RatableItem, score: number, comment: string) {
+    const response = await fetch('/api/ratings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lease_id: item.lease_id,
+        target_id: item.target_id,
+        target_type: item.target_type,
+        score,
+        comment: comment || undefined,
+      }),
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error || 'Failed to submit rating')
+    }
+
+    // Reload to remove rated item
+    await loadRatableItems()
+  }
+
+  useEffect(() => {
+    // ... existing load calls
+    loadRatableItems()  // ← Add this
+  }, [])
+
 
   return (
     <DashboardShell role="tenant">
@@ -267,6 +364,24 @@ export default function TenantDashboard() {
               </div>
             )}
           </section>
+           {ratableLandlords.length > 0 && (
+            <RatingCard
+              items={ratableLandlords}
+              onRate={handleRate}
+              title="Rate Your Landlords"
+              description="Share your experience with past landlords"
+            />
+          )}
+
+          {ratableProperties.length > 0 && (
+            <RatingCard
+              items={ratableProperties}
+              onRate={handleRate}
+              title="Rate Properties"
+              description="Help others by rating the properties you've lived in"
+            />
+          )}
+
         </div>
       </div>
     </DashboardShell>

@@ -23,6 +23,7 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string }>> = 
   { label: "Maintenance", href: "/landlord/maintenance" }, 
   { label: "Payments", href: "/landlord/payments" },
   {label: "Profile", href: "/landlord/profile" },
+  
   ],
 };
 
