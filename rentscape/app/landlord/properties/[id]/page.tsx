@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Card } from '@/components/ui/Card'
 import { Topbar } from '@/components/dashboard/Topbar'
+import { PropertyImageGallery } from '@/components/property/PropertyImageGallery'
 
 const PropertyMap = dynamic(() => import('@/components/map'), { ssr: false })
 
@@ -58,7 +59,6 @@ const initialUnitForm: UnitForm = {
   description: '',
 }
 
-// Mock amenities — swap these out when your teammate finishes the API
 const ALL_AMENITIES = [
   'WiFi', 'Parking', 'Generator', 'Water Supply', 'Security Guard',
   'CCTV', 'Elevator', 'Gas', 'Air Conditioning', 'Laundry',
@@ -75,7 +75,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<UnitForm>(initialUnitForm)
 
-  // Amenities state
   const [linkedAmenities, setLinkedAmenities] = useState<string[]>([])
   const [showAmenityPicker, setShowAmenityPicker] = useState(false)
   const [amenityInput, setAmenityInput] = useState('')
@@ -146,12 +145,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     if (linkedAmenities.includes(amenity)) return
     setAmenitySubmitting(true)
     try {
-      // TODO: replace with real API call when teammate finishes routes
-      // await fetch(`/api/properties/${id}/amenities`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ name: amenity }),
-      // })
       setLinkedAmenities(prev => [...prev, amenity])
     } finally {
       setAmenitySubmitting(false)
@@ -160,12 +153,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
   async function handleRemoveAmenity(amenity: string) {
     try {
-      // TODO: replace with real API call when teammate finishes routes
-      // await fetch(`/api/properties/${id}/amenities`, {
-      //   method: 'DELETE',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ name: amenity }),
-      // })
       setLinkedAmenities(prev => prev.filter(a => a !== amenity))
     } catch (err) {
       console.error('Failed to remove amenity', err)
@@ -180,9 +167,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     setAmenityInput('')
   }
 
-  const filteredAmenities = ALL_AMENITIES.filter(
-    a => !linkedAmenities.includes(a)
-  )
+  const filteredAmenities = ALL_AMENITIES.filter(a => !linkedAmenities.includes(a))
 
   if (loading) {
     return (
@@ -240,6 +225,11 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
               />
             </div>
           </div>
+
+          {/* ── Photos ── */}
+          <Card title="Photos" description="Upload photos to showcase this property">
+            <PropertyImageGallery propertyId={id} />
+          </Card>
 
           <div className="flex justify-end">
             <button
@@ -403,7 +393,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
           {/* Amenities Section */}
           <Card title="Amenities" description="Manage amenities for this property">
-            {/* Currently linked amenities */}
             <div className="space-y-4">
               {linkedAmenities.length === 0 ? (
                 <p className="text-slate-500 text-sm">No amenities added yet.</p>
@@ -426,7 +415,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               )}
 
-              {/* Toggle picker */}
               <button
                 onClick={() => setShowAmenityPicker(!showAmenityPicker)}
                 className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
@@ -436,7 +424,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
               {showAmenityPicker && (
                 <div className="rounded-xl border border-blue-200 bg-white p-4 space-y-4">
-                  {/* Custom amenity input */}
                   <form onSubmit={handleAddCustomAmenity} className="flex gap-2">
                     <input
                       className="flex-1 rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
@@ -453,7 +440,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                     </button>
                   </form>
 
-                  {/* Preset amenities */}
                   {filteredAmenities.length > 0 && (
                     <div>
                       <p className="text-xs font-medium text-blue-800 mb-2">Quick add:</p>
