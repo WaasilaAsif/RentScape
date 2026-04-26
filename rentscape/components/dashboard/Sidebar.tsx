@@ -15,6 +15,7 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string }>> = 
     { label: "Maintenance", href: "/tenant/maintenance" },
     { label: "Search", href: "/tenant/search" },
     {label: "Profile", href: "/tenant/profile" },
+    {label: "Ratings", href: "/tenant/ratings" },
   ],
   landlord: [
   { label: "Dashboard", href: "/landlord" },
