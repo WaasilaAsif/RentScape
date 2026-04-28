@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card"
 import { Topbar } from "@/components/dashboard/Topbar"
 import { MonthlyRevenueChart, PropertyTypesChart } from "@/components/charts/Charts"
 import { RatingCard } from "@/components/dashboard/RatingCard"
-
+//import {} from 
 interface Analytics {
   totalProperties: number
   activeLeases: number
@@ -124,7 +124,7 @@ export default function LandlordDashboard() {
   if (loading) {
     return (
       <DashboardShell role="landlord">
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 py-8">
           <div className="mx-auto max-w-7xl px-4">
             <p className="text-slate-600">Loading dashboard...</p>
           </div>
