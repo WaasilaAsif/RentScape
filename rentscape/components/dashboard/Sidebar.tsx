@@ -19,7 +19,7 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string; exact
     { label: "Ratings", href: "/tenant/ratings" },
   ],
   landlord: [
-    { label: "Dashboard", href: "/landlord", exact: true },
+    { label: "Dashboard", href: "/landlord/dashboard", exact: true },
     { label: "Listings", href: "/landlord/listings" },
     { label: "Leases", href: "/landlord/leases" },
     { label: "Maintenance", href: "/landlord/maintenance" },

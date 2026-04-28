@@ -30,34 +30,15 @@ type Rating = {
   created_at: string
 }
 
-type RatableItem = {
-  lease_id: string
-  landlord_id: string
-  landlord_name: string
-  property_id: string
-  property_title: string
-  unit_number: string
-  end_date: string
-  status: string
-}
-
 export default function TenantProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [ratings, setRatings] = useState<Rating[]>([])
-  const [ratableItems, setRatableItems] = useState<RatableItem[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [givenRatings, setGivenRatings] = useState<any[]>([])
   const [averageRating, setAverageRating] = useState(0)
   const [totalRatings, setTotalRatings] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [showRateModal, setShowRateModal] = useState(false)
-  const [ratingItem, setRatingItem] = useState<RatableItem | null>(null)
-  const [ratingType, setRatingType] = useState<'landlord' | 'property'>('landlord')
-  const [ratingForm, setRatingForm] = useState({ score: 5, comment: '' })
-  const [submittingRating, setSubmittingRating] = useState(false)
 
   const [editForm, setEditForm] = useState({
     full_name: '',
@@ -95,51 +76,8 @@ export default function TenantProfilePage() {
     }
   }
 
-  async function loadRatableLeases() {
-    // try {
-      // Get completed/expired leases for this tenant
-    //   const response = await fetch('/api/leases', { cache: 'no-store' })
-    //   if (!response.ok) return
-      
-    //   const data = await response.json()
-    //   const completedLeases = (data.leases || []).filter(
-    //     (l: { status?: string }) => l.status === 'expired' || l.status === 'terminated'
-    //   )
-      
-    //   setRatableItems(completedLeases)
-    // } catch (err) {
-    //   console.error('Failed to load ratable leases:', err)
-    // }
-      try {
-    // Instead of fetching ALL leases then filtering client-side,
-    // add a status filter to the API
-    const response = await fetch('/api/leases?status=expired,terminated', { cache: 'no-store' })
-    if (!response.ok) return
-    
-    const data = await response.json()
-    setRatableItems(data.leases || [])
-  } catch (err) {
-    console.error('Failed to load ratable leases:', err)
-  }
-}
-
-  async function loadGivenRatings() {
-    try {
-      const response = await fetch('/api/ratings', { cache: 'no-store' })
-      if (!response.ok) return
-      
-      const data = await response.json()
-      setGivenRatings(data.ratings || [])
-    } catch (err) {
-      console.error('Failed to load given ratings:', err)
-    }
-  }
-  
-
   useEffect(() => {
     loadProfile()
-    loadRatableLeases()
-    loadGivenRatings()
   }, [])
 
   async function handleSave() {
@@ -164,49 +102,6 @@ export default function TenantProfilePage() {
     } finally {
       setSaving(false)
     }
-  }
-
-  async function handleSubmitRating() {
-    if (!ratingItem) return
-    
-    setSubmittingRating(true)
-    setError(null)
-    
-    try {
-      const targetId = ratingType === 'landlord' ? ratingItem.landlord_id : ratingItem.property_id
-      
-      const response = await fetch('/api/ratings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lease_id: ratingItem.lease_id,
-          target_id: targetId,
-          target_type: ratingType,
-          score: ratingForm.score,
-          comment: ratingForm.comment || undefined,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to submit rating')
-      }
-
-      setRatingForm({ score: 5, comment: '' })
-      setShowRateModal(false)
-      setRatingItem(null)
-      await loadGivenRatings()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit rating')
-    } finally {
-      setSubmittingRating(false)
-    }
-  }
-
-  function hasRated(leaseId: string, type: 'landlord' | 'property', targetId: string): boolean {
-    return givenRatings.some(
-      r => r.lease_id === leaseId && r.target_type === type && r.target_id === targetId
-    )
   }
 
   if (loading) {
@@ -412,150 +307,8 @@ export default function TenantProfilePage() {
               </div>
             )}
           </Card>
-
-          {/* Rate Past Leases */}
-          {ratableItems.length > 0 && (
-            <Card title="Rate Your Past Stays" description="Share your experience with landlords and properties">
-              <div className="space-y-3">
-                {ratableItems.map(item => (
-                  <div key={item.lease_id} className="rounded-xl border border-blue-200 bg-white p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-slate-900">{item.property_title}</p>
-                        <p className="text-sm text-slate-600">Unit {item.unit_number}</p>
-                        <p className="text-sm text-slate-500">
-                          Ended: {new Date(item.end_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        {!hasRated(item.lease_id, 'landlord', item.landlord_id) && (
-                          <button
-                            onClick={() => {
-                              setRatingItem(item)
-                              setRatingType('landlord')
-                              setShowRateModal(true)
-                            }}
-                            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                          >
-                            Rate Landlord
-                          </button>
-                        )}
-                        {!hasRated(item.lease_id, 'property', item.property_id) && (
-                          <button
-                            onClick={() => {
-                              setRatingItem(item)
-                              setRatingType('property')
-                              setShowRateModal(true)
-                            }}
-                            className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
-                          >
-                            Rate Property
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Ratings I Gave */}
-          {givenRatings.length > 0 && (
-            <Card title="Ratings I've Given" description={`${givenRatings.length} reviews`}>
-              <div className="space-y-3">
-                {givenRatings.map(rating => (
-                  <div key={rating.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-slate-900">
-                          {rating.target_name} ({rating.target_type})
-                        </p>
-                        {rating.property_title && (
-                          <p className="text-sm text-slate-600">
-                            {rating.property_title} • Unit {rating.unit_number}
-                          </p>
-                        )}
-                        <p className="text-sm text-slate-500 mt-1">
-                          {new Date(rating.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-yellow-600">
-                          {'⭐'.repeat(rating.score)}
-                        </p>
-                        <p className="text-xs text-slate-500">{rating.score}/5</p>
-                      </div>
-                    </div>
-                    {rating.comment && (
-                      <p className="mt-2 text-sm text-slate-700 italic">&quot;{rating.comment}&quot;</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
         </div>
       </div>
-
-      {/* Rating Modal */}
-      {showRateModal && ratingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">
-              Rate {ratingType === 'landlord' ? ratingItem.landlord_name : ratingItem.property_title}
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      onClick={() => setRatingForm({ ...ratingForm, score: star })}
-                      className={`text-3xl ${star <= ratingForm.score ? 'text-yellow-500' : 'text-slate-300'}`}
-                    >
-                      ⭐
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Comment (optional)</label>
-                <textarea
-                  className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm"
-                  rows={4}
-                  value={ratingForm.comment}
-                  onChange={e => setRatingForm({ ...ratingForm, comment: e.target.value })}
-                  placeholder="Share your experience..."
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowRateModal(false)
-                    setRatingItem(null)
-                    setRatingForm({ score: 5, comment: '' })
-                  }}
-                  className="flex-1 rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitRating}
-                  disabled={submittingRating}
-                  className="flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {submittingRating ? 'Submitting...' : 'Submit Rating'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </DashboardShell>
   )
 }
