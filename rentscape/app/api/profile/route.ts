@@ -9,7 +9,7 @@ const updateProfileSchema = z.object({
   address: z.string().optional(),
   emergency_contact_name: z.string().optional(),
   emergency_contact_phone: z.string().optional(),
-  police_verification_url: z.string().url().optional(),
+  police_verification_url: z.string().url().optional().or(z.literal('')),
 })
 
 // export async function GET(request: NextRequest) {
@@ -78,87 +78,85 @@ const updateProfileSchema = z.object({
 //   }
 // }
 
-// export async function PUT(request: NextRequest) {
-//   try {
-//     const user = await getUserWithRole()
-//     if (!user) {
-//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-//     }
+ export async function PUT(request: NextRequest) {
+   try {
+     const user = await getUserWithRole()
+     if (!user) {
+       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+     }
 
-//     const body = await request.json()
-//     const validated = updateProfileSchema.parse(body)
+     const body = await request.json()
+     const validated = updateProfileSchema.parse(body)
 
-//     // Build dynamic update
-//     const updates: string[] = []
-//     type Value = string | null
-//     const values: Value[] = []
-//     let paramCount = 1
+     // Build dynamic update
+     const updates: string[] = []
+     type Value = string | null
+     const values: Value[] = []
+     let paramCount = 1
 
-//     if (validated.full_name) {
-//       updates.push(`full_name = $${paramCount++}`)
-//       values.push(validated.full_name.trim())
-//     }
+     if (validated.full_name) {
+       updates.push(`full_name = $${paramCount++}`)
+       values.push(validated.full_name.trim())
+     }
 
-//     if (validated.phone !== undefined) {
-//       updates.push(`phone = $${paramCount++}`)
-//       values.push(validated.phone.replace(/[\s-]/g, '') || null)
-//     }
+     if (validated.phone !== undefined) {
+       updates.push(`phone = $${paramCount++}`)
+       values.push(validated.phone.replace(/[\s-]/g, '') || null)
+     }
 
-//     if (validated.address !== undefined) {
-//       updates.push(`address = $${paramCount++}`)
-//       values.push(validated.address.trim() || null)
-//     }
+     if (validated.address !== undefined) {
+       updates.push(`address = $${paramCount++}`)
+       values.push(validated.address.trim() || null)
+     }
 
-//     if (validated.emergency_contact_name !== undefined) {
-//       updates.push(`emergency_contact_name = $${paramCount++}`)
-//       values.push(validated.emergency_contact_name.trim() || null)
-//     }
+     if (validated.emergency_contact_name !== undefined) {
+       updates.push(`emergency_contact_name = $${paramCount++}`)
+       values.push(validated.emergency_contact_name.trim() || null)
+     }
 
-//     if (validated.emergency_contact_phone !== undefined) {
-//       updates.push(`emergency_contact_phone = $${paramCount++}`)
-//       values.push(validated.emergency_contact_phone.replace(/[\s-]/g, '') || null)
-//     }
+     if (validated.emergency_contact_phone !== undefined) {
+       updates.push(`emergency_contact_phone = $${paramCount++}`)
+       values.push(validated.emergency_contact_phone.replace(/[\s-]/g, '') || null)
+     }
 
-//     if (validated.police_verification_url !== undefined) {
-//       updates.push(`police_verification_url = $${paramCount++}`)
-//       values.push(validated.police_verification_url)
-//     }
+     if (validated.police_verification_url !== undefined) {
+       updates.push(`police_verification_url = $${paramCount++}`)
+       values.push(validated.police_verification_url || null)
+     }
 
-//     if (updates.length === 0) {
-//       return NextResponse.json(
-//         { error: 'No fields to update' },
-//         { status: 400 }
-//       )
-//     }
+     if (updates.length === 0) {
+       return NextResponse.json(
+         { error: 'No fields to update' },
+         { status: 400 }
+       )
+     }
 
-//     updates.push(`updated_at = NOW()`)
+     updates.push(`updated_at = NOW()`)
 
-//     const result = await pool.query(
-//       `UPDATE profiles 
-//        SET ${updates.join(', ')}
-//        WHERE id = $${paramCount}
-//        RETURNING *`,
-//       [...values, user.id]
-//     )
+     const result = await pool.query(
+       `UPDATE profiles 
+        SET ${updates.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *`,
+       [...values, user.id]
+     )
+     return NextResponse.json({ profile: result.rows[0] }, { status: 200 })
+   } catch (err: unknown) {
+     if (err instanceof z.ZodError) {
+       return NextResponse.json(
+         { error: 'Validation failed', details: err.issues },
+         { status: 400 }
+       )
+     }
 
-//     return NextResponse.json({ profile: result.rows[0] }, { status: 200 })
-
-//   } catch (err: unknown) {
-//     if (err instanceof z.ZodError) {
-//       return NextResponse.json(
-//         { error: 'Validation failed', details: err.issues },
-//         { status: 400 }
-//       )
-//     }
-
-//     const error = err as Error
-//     console.error('PUT /api/profile error:', error.message)
-//     return NextResponse.json(
-//       { error: 'Failed to update profile', message: error.message },
-//       { status: 500 }
-//     )
-//   }
-// }
+     const error = err as Error
+     console.error('PUT /api/profile error:', error.message)
+     return NextResponse.json(
+       { error: 'Failed to update profile', message: error.message },
+       { status: 500 }
+     )
+   }
+ }
 
 export async function GET(request: NextRequest) {
   try {

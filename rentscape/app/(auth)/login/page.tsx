@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { Montserrat, Playfair_Display } from 'next/font/google'
+import { refetchCurrentUser } from '@/hooks/useCurrentUser'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -118,6 +119,7 @@ export default function AdminAuthSlider() {
         .eq('id', data.user.id)
         .single()
 
+      refetchCurrentUser()
       setLoading(false)
       router.push(profile?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')
     }

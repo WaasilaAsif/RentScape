@@ -86,13 +86,16 @@ export default function TenantProfilePage() {
     try {
       const response = await fetch('/api/profile', {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to update profile')
+        const text = await response.text()
+        let message = 'Failed to update profile'
+        try { message = JSON.parse(text).error || message } catch {}
+        throw new Error(message)
       }
 
       await loadProfile()
