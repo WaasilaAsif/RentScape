@@ -17,6 +17,7 @@ type PropertyDetails = {
   property_type: string
   status: string
   landlord_name?: string
+  landlord_phone?: string
   lat: number
   lng: number
 }
@@ -165,7 +166,17 @@ export default function PropertyDetailsPage() {
               <span className="text-sm text-slate-400">({ratings.total_reviews} review{ratings.total_reviews !== 1 ? 's' : ''})</span>
             </div>
           )}
-          <p className="mt-2 text-sm text-slate-500">Listed by {property.landlord_name ?? 'Landlord'}</p>
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+            <svg className="h-5 w-5 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7V5z" />
+            </svg>
+            <p className="text-sm text-slate-600">
+              Interested in renting? Contact <span className="font-medium text-slate-800">{property.landlord_name ?? 'the landlord'}</span> on{' '}
+              <a href={`tel:${property.landlord_phone}`} className="font-semibold text-blue-700 hover:underline">
+                {property.landlord_phone ?? 'number not available'}
+              </a>
+            </p>
+          </div>
         </section>
 
         {/* Photo Gallery */}

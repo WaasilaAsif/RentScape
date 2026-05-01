@@ -47,6 +47,20 @@ type UnitForm = {
   description: string
 }
 
+type Review = {
+  id: string
+  reviewer_name: string
+  score: number
+  comment: string | null
+  created_at: string
+}
+
+type RatingsData = {
+  average_rating: number
+  total_reviews: number
+  reviews: Review[]
+}
+
 const initialUnitForm: UnitForm = {
   unit_number: '',
   floor: '1',
@@ -65,6 +79,35 @@ const ALL_AMENITIES = [
   'Rooftop Access', 'Gym', 'Swimming Pool', 'Prayer Area', 'Storage Room'
 ]
 
+function StarRating({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClass = size === 'sm' ? 'h-3.5 w-3.5' : size === 'lg' ? 'h-6 w-6' : 'h-5 w-5'
+  return (
+    <span className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map(star => (
+        <svg key={star} className={`${sizeClass} ${star <= Math.round(rating) ? 'text-yellow-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.175 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69L9.05 2.927z" />
+        </svg>
+      ))}
+    </span>
+  )
+}
+
+function RatingBar({ label, count, total }: { label: string; count: number; total: number }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="w-6 shrink-0 text-right text-slate-500">{label}</span>
+      <svg className="h-3.5 w-3.5 shrink-0 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.175 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69L9.05 2.927z" />
+      </svg>
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full rounded-full bg-yellow-400 transition-all duration-500" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-6 shrink-0 text-slate-400">{count}</span>
+    </div>
+  )
+}
+
 export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [property, setProperty] = useState<Property | null>(null)
@@ -75,10 +118,11 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<UnitForm>(initialUnitForm)
 
-  const [linkedAmenities, setLinkedAmenities] = useState<string[]>([])
+  const [linkedAmenities, setLinkedAmenities] = useState<{ id: string; name: string }[]>([])
   const [showAmenityPicker, setShowAmenityPicker] = useState(false)
   const [amenityInput, setAmenityInput] = useState('')
   const [amenitySubmitting, setAmenitySubmitting] = useState(false)
+  const [ratings, setRatings] = useState<RatingsData | null>(null)
 
   async function loadData() {
     setLoading(true)
@@ -86,11 +130,17 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       const propResponse = await fetch(`/api/properties/${id}`, { cache: 'no-store' })
       const propData = await propResponse.json()
       setProperty(propData.property)
-      setLinkedAmenities(Array.isArray(propData.amenities) ? propData.amenities : [])
+      const amenitiesRes = await fetch(`/api/properties/${id}/amenities`, { cache: 'no-store' })
+      const amenitiesData = await amenitiesRes.json()
+      setLinkedAmenities(Array.isArray(amenitiesData.amenities) ? amenitiesData.amenities : [])
 
       const unitsResponse = await fetch(`/api/units?property_id=${id}`, { cache: 'no-store' })
       const unitsData = await unitsResponse.json()
       setUnits(Array.isArray(unitsData.units) ? unitsData.units : [])
+
+      const ratingsRes = await fetch(`/api/properties/${id}/ratings`, { cache: 'no-store' })
+      const ratingsData = await ratingsRes.json()
+      setRatings(ratingsData ?? null)
     } catch (err) {
       setError('Failed to load property data.')
     } finally {
@@ -141,19 +191,53 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  async function handleAddAmenity(amenity: string) {
-    if (linkedAmenities.includes(amenity)) return
+  async function handleAddAmenity(amenityName: string) {
+    
+    if (linkedAmenities.some(a => a.name === amenityName)) return
     setAmenitySubmitting(true)
     try {
-      setLinkedAmenities(prev => [...prev, amenity])
+      // First: get or create the amenity record to get its UUID
+      const lookupRes = await fetch('/api/amenities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: amenityName }),
+      })
+      
+      const lookupData = await lookupRes.json()
+      console.log('lookupData', lookupData) 
+      const amenityId = lookupData.amenity?.id
+      console.log('amenityId', amenityId)  
+
+      if (!amenityId) throw new Error('Failed to resolve amenity')
+
+      // Then: link it to the property
+      const linkRes = await fetch(`/api/properties/${id}/amenities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amenity_id: amenityId }),
+      })
+
+      if (!linkRes.ok) {
+        const data = await linkRes.json()
+        throw new Error(data.error || 'Failed to add amenity')
+      }
+
+      setLinkedAmenities(prev => [...prev, { id: amenityId, name: amenityName }])
+
+    } catch (err) {
+      console.error('Failed to add amenity', err)
     } finally {
       setAmenitySubmitting(false)
     }
   }
 
-  async function handleRemoveAmenity(amenity: string) {
+  async function handleRemoveAmenity(amenityId: string) {
     try {
-      setLinkedAmenities(prev => prev.filter(a => a !== amenity))
+      const res = await fetch(`/api/properties/${id}/amenities?amenity_id=${amenityId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('Failed to remove amenity')
+      setLinkedAmenities(prev => prev.filter(a => a.id !== amenityId))
     } catch (err) {
       console.error('Failed to remove amenity', err)
     }
@@ -167,7 +251,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     setAmenityInput('')
   }
 
-  const filteredAmenities = ALL_AMENITIES.filter(a => !linkedAmenities.includes(a))
+  const filteredAmenities = ALL_AMENITIES.filter(a => !linkedAmenities.some(l => l.name === a))
 
   if (loading) {
     return (
@@ -398,20 +482,17 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 <p className="text-slate-500 text-sm">No amenities added yet.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {linkedAmenities.map(amenity => (
-                    <span
-                      key={amenity}
-                      className="flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
-                    >
-                      {amenity}
-                      <button
-                        onClick={() => handleRemoveAmenity(amenity)}
-                        className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
+                    {linkedAmenities.map(amenity => (
+                      <span key={amenity.id} className="flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                        {amenity.name}
+                        <button
+                          onClick={() => handleRemoveAmenity(amenity.id)}
+                          className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
                 </div>
               )}
 
@@ -460,6 +541,48 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               )}
             </div>
+          </Card>
+          {/* Ratings & Reviews */}
+          <Card title="Ratings & Reviews" description="What tenants say about this property">
+            {!ratings || ratings.total_reviews === 0 ? (
+              <p className="text-slate-500 text-sm">No reviews yet for this property.</p>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                  <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 px-8 py-6 text-center shrink-0">
+                    <span className="text-5xl font-bold text-slate-900">{ratings.average_rating.toFixed(1)}</span>
+                    <StarRating rating={ratings.average_rating} size="lg" />
+                    <span className="mt-1 text-sm text-slate-500">{ratings.total_reviews} review{ratings.total_reviews !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex-1 space-y-2 py-2">
+                    {[5, 4, 3, 2, 1].map(star => (
+                      <RatingBar
+                        key={star}
+                        label={String(star)}
+                        count={ratings.reviews.filter(r => Math.round(r.score) === star).length}
+                        total={ratings.total_reviews}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {ratings.reviews.map(review => (
+                    <div key={review.id} className="rounded-xl border border-slate-100 bg-slate-50 px-5 py-4 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium text-slate-800">{review.reviewer_name}</span>
+                        <span className="text-xs text-slate-400">
+                          {new Date(review.created_at).toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <StarRating rating={review.score} size="sm" />
+                      {review.comment && (
+                        <p className="text-sm text-slate-600 leading-relaxed">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </div>

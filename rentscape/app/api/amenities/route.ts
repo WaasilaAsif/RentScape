@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const result = await pool.query(
       `INSERT INTO amenities (name)
        VALUES ($1)
-       ON CONFLICT (name) DO NOTHING
+       ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
        RETURNING *`,
       [validated.name.trim()]
     )
