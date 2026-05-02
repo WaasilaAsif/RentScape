@@ -720,84 +720,137 @@ export default function AdminAuthSlider() {
         }
 
         @media (max-width: 920px) {
-          .auth-shell {
-            width: 100%;
-            max-width: none;
-            min-height: auto;
-            padding-bottom: 8px;
-          }
-          .panel-title {
-            position: static;
-            text-align: center;
-            margin: 20px 20px 0;
-          }
-          .mobile-auth-switch {
-            display: flex;
-            position: relative;
-            z-index: 20;
-            margin: 20px 20px 0;
-            padding: 4px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-          }
-          .mobile-auth-switch button {
-            flex: 1;
-            border: none;
-            cursor: pointer;
-            padding: 12px 14px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: rgba(226, 232, 240, 0.72);
-            background: transparent;
-            transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
-          }
-          .mobile-auth-switch button.active {
-            color: #f8fafc;
-            background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.35);
-          }
-          .form-container,
-          .overlay-panel {
-            padding: 28px 22px 36px;
-          }
-          .overlay-container {
-            display: none;
-          }
-          .form-container {
-            width: 100%;
-            position: relative;
-            top: 0;
-            left: 0;
-            transform: none !important;
-            opacity: 1 !important;
-          }
-          .sign-in-container {
-            display: none;
-          }
-          .sign-up-container {
-            display: none;
-          }
-          .auth-shell:not(.right-panel-active) .sign-in-container {
-            display: flex;
-          }
-          .auth-shell:not(.right-panel-active) .sign-up-container {
-            display: none !important;
-          }
-          .auth-shell.right-panel-active .sign-up-container {
-            display: flex;
-          }
-          .auth-shell.right-panel-active .sign-in-container {
-            display: none !important;
-          }
-        }
+  .auth-shell {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
 
-        /* Tablet: prevent card overflow on mid-size screens */
-@media (max-width: 1100px) and (min-width: 921px) {
+  .auth-shell-sizer {
+    display: none;
+  }
+
+  .panel-title {
+    position: static;
+    text-align: center;
+    margin: 16px 20px 0;
+  }
+
+  .mobile-auth-switch {
+    display: flex;
+    position: relative;
+    z-index: 20;
+    margin: 12px 20px 0;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+  }
+
+  .mobile-auth-switch button {
+    flex: 1;
+    border: none;
+    cursor: pointer;
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.72);
+    background: transparent;
+    transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .mobile-auth-switch button.active {
+    color: #f8fafc;
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+    box-shadow: 0 14px 28px rgba(37, 99, 235, 0.35);
+  }
+
+  .overlay-container {
+    display: none;
+  }
+
+  /* Both containers become normal flow, stacked */
+  .sign-in-container,
+  .sign-up-container {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    padding: 16px 16px 24px !important;
+    align-items: stretch !important;
+    flex-shrink: 0;
+  }
+
+  /* Hide the inactive panel */
+  .auth-shell:not(.right-panel-active) .sign-up-container {
+    display: none !important;
+  }
+
+  .auth-shell.right-panel-active .sign-in-container {
+    display: none !important;
+  }
+
+  .auth-shell:not(.right-panel-active) .sign-in-container {
+    display: flex !important;
+  }
+
+  .auth-shell.right-panel-active .sign-up-container {
+    display: flex !important;
+  }
+
+  .form-card {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 22px;
+    border-radius: 24px;
+    box-sizing: border-box;
+  }
+
+  .form-card h1 {
+    font-size: 1.7rem;
+    margin-bottom: 6px;
+  }
+
+  .form-card p {
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+  }
+
+  .step-indicator {
+    margin-bottom: 14px;
+  }
+
+  .input-field {
+    margin-bottom: 12px;
+  }
+
+  .input {
+    padding: 13px 14px;
+    font-size: 0.94rem;
+  }
+
+  .button {
+    padding: 14px 0;
+  }
+
+  .button-row {
+    margin-top: 16px;
+  }
+}
+ @media (max-width: 1100px) and (min-width: 921px) {
   .form-card {
     padding: 36px 32px;
   }
@@ -844,8 +897,31 @@ export default function AdminAuthSlider() {
     padding: 13px 0;
   }
 }
+@media (max-width: 640px) {
+  .auth-shell {
+    border-radius: 0;
+  }
 
-/* Mobile: already handled, but tighten card further on very small screens */
+  .form-card {
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
+
+  .form-card h1 {
+    font-size: 1.5rem;
+  }
+
+  .input {
+    padding: 11px 12px;
+    font-size: 0.92rem;
+    border-radius: 12px;
+  }
+
+  .button {
+    padding: 13px 0;
+    border-radius: 14px;
+  }
+}
 @media (max-width: 400px) {
   .form-card {
     padding: 26px 16px;
