@@ -17,7 +17,7 @@
 // Go thrpogh this file again while running ui 
 // First check no UI is using prisma and then delete and revert this file to the original pg pool implementation if not using prisma in UI
 import { Pool } from 'pg'
-import { PrismaClient } from '@/app/generated/prisma/client'
+//import { PrismaClient } from '@/app/generated/prisma/client'
 //import { PrismaPg } from '@prisma/adapter-pg'
 
 // --- Prisma Singleton ---
@@ -55,4 +55,4 @@ export const pool = new Pool({
 })
 
 // Prisma stub (prevent import errors, not actually used)
-export const prisma = {} as unknown as PrismaClient 
+// export const prisma = {} as unknown as PrismaClient 
