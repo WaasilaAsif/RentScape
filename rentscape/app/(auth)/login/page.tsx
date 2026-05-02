@@ -373,15 +373,16 @@ export default function AdminAuthSlider() {
         }
 
         .sign-up-container {
-          left: var(--split-narrow);
-          width: var(--split-wide);
-          min-width: 0;
-          opacity: 0;
-          transform: translateX(100%);
-          z-index: 1;
-          align-items: flex-start;
-          padding-top: clamp(32px, 5vh, 56px);
-        }
+        left: var(--split-narrow);
+        width: var(--split-wide);
+        min-width: 0;
+        opacity: 0;
+        transform: translateX(100%);
+        z-index: 1;
+        align-items: center;              
+        padding: clamp(16px, 3vh, 40px) clamp(18px, 3vw, 40px);
+        overflow-y: auto;
+      }
 
         .form-card {
           width: 100%;
@@ -795,7 +796,71 @@ export default function AdminAuthSlider() {
           }
         }
 
-        @media (max-width: 640px) {
+        /* Tablet: prevent card overflow on mid-size screens */
+@media (max-width: 1100px) and (min-width: 921px) {
+  .form-card {
+    padding: 36px 32px;
+  }
+
+  .sign-up-container {
+    padding: 12px clamp(14px, 2vw, 28px);
+  }
+}
+
+/* Fix scrollbar on sign-up for shorter viewports */
+@media (max-height: 750px) and (min-width: 921px) {
+  .sign-up-container {
+    align-items: flex-start;
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .form-card {
+    padding: 28px 32px;
+  }
+
+  .form-card h1 {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+  }
+
+  .form-card p {
+    margin-bottom: 16px;
+  }
+
+  .step-indicator {
+    margin-bottom: 16px;
+  }
+
+  .input-field {
+    margin-bottom: 12px;
+  }
+
+  .input {
+    padding: 12px 14px;
+  }
+
+  .button {
+    padding: 13px 0;
+  }
+}
+
+/* Mobile: already handled, but tighten card further on very small screens */
+@media (max-width: 400px) {
+  .form-card {
+    padding: 26px 16px;
+    border-radius: 20px;
+  }
+
+  .input {
+    padding: 13px 12px;
+    font-size: 0.93rem;
+  }
+}
+        
+      `}</style>
+
+        {/* @media (max-width: 640px) {
           .auth-shell {
             width: 100%;
             max-width: none;
@@ -810,9 +875,7 @@ export default function AdminAuthSlider() {
           .overlay-panel h2 {
             font-size: 2rem;
           }
-        }
-      `}</style>
-
+        } */}
       <div className={`auth-shell min-h-0 w-full flex-1 ${isSignUp ? 'right-panel-active' : ''}`}>
         <div className="auth-shell-sizer" aria-hidden />
         <div className="panel-title">RentScape Access</div>
