@@ -119,7 +119,7 @@ export default function ListingsPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setShowForm(!showForm)}
-              className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 transition-colors"
             >
               {showForm ? 'Cancel' : '+ Add Property'}
             </button>

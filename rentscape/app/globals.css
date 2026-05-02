@@ -1,8 +1,20 @@
 @import "tailwindcss";
 @import 'leaflet/dist/leaflet.css';
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F8FAFF;
+  --foreground: #0F172A;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --blue-primary: #2563EB;
+  --blue-muted: #3B82F6;
+  --blue-faint: #EFF6FF;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --shadow-blue: 0 8px 30px rgb(59 130 246 / 0.08);
+  --shadow-blue-md: 0 4px 16px rgb(59 130 246 / 0.12);
 }
 
 @theme inline {
@@ -12,33 +24,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* Fix: use what you already loaded */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans, Arial, sans-serif);
-}
-/* Custom scrollbar for sidebar */
-.sidebar-scroll::-webkit-scrollbar {
-  width: 4px;
+  -webkit-font-smoothing: antialiased;
 }
 
-.sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* Sidebar scrollbar */
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #c7d2fe;
+  background: rgba(255,255,255,0.12);
   border-radius: 999px;
 }
-
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: #818cf8;
+  background: rgba(255,255,255,0.2);
 }
