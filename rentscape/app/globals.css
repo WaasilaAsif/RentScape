@@ -19,10 +19,11 @@
   }
 }
 
+/* Fix: use what you already loaded */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans, Arial, sans-serif);
 }
 /* Custom scrollbar for sidebar */
 .sidebar-scroll::-webkit-scrollbar {
