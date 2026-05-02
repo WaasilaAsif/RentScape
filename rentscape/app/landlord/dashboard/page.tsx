@@ -19,7 +19,17 @@ interface Analytics {
   propertyTypes: Array<{ type: string; count: number }>
 }
 
-type RatableItem = {
+// type RatableItem = {
+//   lease_id: string
+//   target_id: string
+//   target_name: string
+//   target_type: 'tenant'
+//   property_title: string
+//   unit_number: string
+//   end_date: string
+// }
+
+type TenantRatingItem = {
   lease_id: string
   target_id: string
   target_name: string
@@ -31,7 +41,7 @@ type RatableItem = {
 
 export default function LandlordDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
-  const [ratableLeases, setRatableLeases] = useState<RatableItem[]>([])
+  const [ratableLeases, setRatableLeases] = useState<TenantRatingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -92,7 +102,7 @@ export default function LandlordDashboard() {
     loadData()
   }, [])
 
-  async function handleRate(item: RatableItem, score: number, comment: string) {
+  async function handleRate(item: TenantRatingItem, score: number, comment: string) {
     const response = await fetch('/api/ratings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -209,12 +219,18 @@ export default function LandlordDashboard() {
 
           {/* Rating Card */}
           {ratableLeases.length > 0 && (
-            <RatingCard
-              items={ratableLeases}
-              onRate={handleRate}
-              title="Rate Your Past Tenants"
-              description="Share feedback on completed leases"
-            />
+            // <RatingCard
+            //   items={ratableLeases}
+            //   onRate={handleRate}
+            //   title="Rate Your Past Tenants"
+            //   description="Share feedback on completed leases"
+            // />
+<RatingCard
+  items={ratableLeases.filter(item => item.target_type === 'tenant') as any}
+  onRate={handleRate as any}
+  title="Rate Your Past Tenants"
+  description="Share feedback on completed leases"
+/>
           )}
         </div>
       </div>
