@@ -4,8 +4,8 @@ import { pool } from '@/lib/db'
 import { z } from 'zod'
 
 const createRatingSchema = z.object({
-  lease_id: z.string().uuid(),
-  target_id: z.string().uuid(),
+  lease_id: z.string(),
+  target_id: z.string(),
   target_type: z.enum(['tenant', 'landlord', 'property']),
   score: z.number().min(1).max(5),
   comment: z.string().optional(),
@@ -154,23 +154,29 @@ export async function GET(request: NextRequest) {
       `
       params = [leaseId]
     } else {
-      // Get all ratings where user is reviewer (ratings I gave)
-      query = `
-        SELECT 
-          r.*,
-          target.full_name as target_name,
-          p.title as property_title,
-          u.unit_number
-        FROM ratings r
-        JOIN profiles target ON r.target_id = target.id
-        LEFT JOIN leases l ON r.lease_id = l.id
-        LEFT JOIN units u ON l.unit_id = u.id
-        LEFT JOIN properties p ON u.property_id = p.id
-        WHERE r.reviewer_id = $1
-        ORDER BY r.created_at DESC
-      `
-      params = [user.id]
-    }
+        // Get all ratings where user is reviewer (ratings I gave)
+        query = `
+          SELECT 
+            r.*,
+            CASE 
+              WHEN r.target_type = 'property' THEN p.title
+              ELSE prof.full_name
+            END as target_name,
+            prop.title as property_title,
+            u.unit_number
+          FROM ratings r
+          LEFT JOIN profiles prof 
+            ON r.target_id = prof.id AND r.target_type != 'property'
+          LEFT JOIN properties p 
+            ON r.target_id = p.id AND r.target_type = 'property'
+          LEFT JOIN leases l ON r.lease_id = l.id
+          LEFT JOIN units u ON l.unit_id = u.id
+          LEFT JOIN properties prop ON u.property_id = prop.id
+          WHERE r.reviewer_id = $1
+          ORDER BY r.created_at DESC
+        `
+        params = [user.id]
+      }
 
     const result = await pool.query(query, params)
 

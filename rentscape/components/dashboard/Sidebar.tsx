@@ -4,29 +4,31 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser, resetCurrentUser } from "@/hooks/useCurrentUser";
+import { usePathname } from "next/navigation";
 
 type DashboardRole = "tenant" | "landlord";
 
-const navItems: Record<DashboardRole, Array<{ label: string; href: string }>> = {
+const navItems: Record<DashboardRole, Array<{ label: string; href: string; exact?: boolean }>> = {
   tenant: [
-    { label: "Dashboard", href: "/tenant/dashboard" },
+    { label: "Dashboard", href: "/tenant/dashboard", exact: true },
     { label: "Leases", href: "/tenant/leases" },
     { label: "Payments", href: "/tenant/payments" },
     { label: "Maintenance", href: "/tenant/maintenance" },
-    { label: "Search", href: "/tenant/search" },
-    {label: "Profile", href: "/tenant/profile" },
-    {label: "Ratings", href: "/tenant/ratings" },
+    { label: "Profile", href: "/tenant/profile" },
+    { label: "Ratings", href: "/tenant/ratings" },
   ],
   landlord: [
-  { label: "Dashboard", href: "/landlord/dashboard" },
-  { label: "Listings", href: "/landlord/listings" },
-  { label: "Leases", href: "/landlord/leases" },
-  { label: "Maintenance", href: "/landlord/maintenance" }, 
-  { label: "Payments", href: "/landlord/payments" },
-  {label: "Profile", href: "/landlord/profile" },
-  
+
+//Added the exact = true by aman. Did not need in mine but it is something to consider if we have any routes that could be a substring of another. For example, if we had a "/landlord/dashboard/analytics" route, then without exact: true, the "Dashboard" nav item would be active for both "/landlord/dashboard" and "/landlord/dashboard/analytics". By adding exact: true to the "Dashboard" nav item, it will only be active when the pathname is exactly "/landlord/dashboard", and not for any sub-routes. This helps ensure that the correct nav item is highlighted based on the current route.
+    { label: "Dashboard", href: "/landlord/dashboard", exact: true },
+    { label: "Listings", href: "/landlord/listings" },
+    { label: "Leases", href: "/landlord/leases" },
+    { label: "Maintenance", href: "/landlord/maintenance" },
+    { label: "Payments", href: "/landlord/payments" },
+    { label: "Profile", href: "/landlord/profile" },
+
   ],
-};
+}
 
 interface Property {
   id: string;
@@ -44,6 +46,7 @@ const MAX_WIDTH = 360;
 const DEFAULT_WIDTH = 288; // w-72
 
 export function Sidebar({ role }: SidebarProps) {
+  const pathname = usePathname()
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -128,38 +131,26 @@ export function Sidebar({ role }: SidebarProps) {
           </div>
 
           <nav className="flex flex-1 flex-col gap-1">
-            {navItems[role].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-blue-800 transition hover:bg-blue-100/60 hover:text-blue-900"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+            {navItems[role].map((item) => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href + '/')
 
-          {role === "landlord" && (
-            <div className="space-y-3 px-3">
-              <h3 className="text-sm font-semibold text-blue-900">Your Properties</h3>
-              {properties.length > 0 ? (
-                <ul className="space-y-2">
-                  {properties.map((prop) => (
-                    <li key={prop.id}>
-                      <Link
-                        href={`/properties/${prop.id}`}
-                        className="block rounded-lg px-3 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-200/50 hover:text-blue-900 truncate"
-                      >
-                        {prop.title} - {prop.city}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-blue-600">No properties yet.</p>
-              )}
-            </div>
-          )}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? 'bg-blue-600 text-white font-semibold'
+                      : 'text-blue-800 hover:bg-blue-100/60 hover:text-blue-900'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
 
           <div className="rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-200/50 p-4 text-sm text-blue-900 mx-3">
             <p className="font-semibold mb-1">

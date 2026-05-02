@@ -35,7 +35,7 @@ type RatableItem = {
   lease_id: string
   target_id: string
   target_name: string
-  target_type: 'landlord' | 'property'| 'tenant'
+  target_type: 'landlord' | 'property' | 'tenant'
   property_title?: string
   unit_number?: string
   end_date: string
@@ -45,6 +45,7 @@ export default function TenantDashboard() {
   const router = useRouter()
   const pathname = usePathname()
   const [properties, setProperties] = useState<Property[]>([])
+  const [covers, setCovers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [apiError, setApiError] = useState<string | null>(null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
@@ -53,7 +54,6 @@ export default function TenantDashboard() {
   const [hasPendingLease, setHasPendingLease] = useState(false)
   const [ratableLandlords, setRatableLandlords] = useState([])
   const [ratableProperties, setRatableProperties] = useState([])
-
 
   const syncFiltersToUrl = useCallback(
     (q: string, type: string) => {
@@ -67,7 +67,7 @@ export default function TenantDashboard() {
     },
     [pathname, router]
   )
-  
+
   const loadProperties = useCallback(async (q: string, type: string) => {
     setLoading(true)
     setApiError(null)
@@ -78,18 +78,31 @@ export default function TenantDashboard() {
 
       const response = await fetch(`/api/properties?${params.toString()}`, { cache: 'no-store' })
       const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || 'Properties API failed to initialize.')
+      if (!response.ok) throw new Error(data?.error || 'Properties API failed to initialize.')
+
+      const loaded: Property[] = Array.isArray(data.properties) ? data.properties : []
+      setProperties(loaded)
+
+      // Fetch cover images for all loaded properties in one shot
+      if (loaded.length > 0) {
+        const ids = loaded.map(p => p.id).join(',')
+        const coverRes = await fetch(`/api/properties/cover-images?ids=${ids}`, { cache: 'no-store' })
+        if (coverRes.ok) {
+          const coverData = await coverRes.json()
+          setCovers(coverData.covers ?? {})
+        }
+      } else {
+        setCovers({})
       }
-      setProperties(Array.isArray(data.properties) ? data.properties : [])
     } catch (error) {
       setProperties([])
+      setCovers({})
       setApiError(error instanceof Error ? error.message : 'Properties API failed to initialize.')
     } finally {
       setLoading(false)
     }
   }, [])
-  
+
   const resetSearch = useCallback(() => {
     setSearchQuery('')
     setTypeFilter('all')
@@ -120,13 +133,11 @@ export default function TenantDashboard() {
       }
     }
     loadPendingLease()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   const propertyTypes = useMemo(() => {
-    return [...new Set(properties.map(property => property.property_type).filter(Boolean))].sort()
+    return [...new Set(properties.map(p => p.property_type).filter(Boolean))].sort()
   }, [properties])
 
   const filteredProperties = properties
@@ -134,19 +145,11 @@ export default function TenantDashboard() {
   const markers = useMemo<MapMarker[]>(
     () =>
       filteredProperties
-        .filter(
-          property =>
-            typeof property.lat === 'number' &&
-            Number.isFinite(property.lat) &&
-            typeof property.lng === 'number' &&
-            Number.isFinite(property.lng)
+        .filter(p =>
+          typeof p.lat === 'number' && Number.isFinite(p.lat) &&
+          typeof p.lng === 'number' && Number.isFinite(p.lng)
         )
-        .map(property => ({
-          id: property.id,
-          title: property.title,
-          lat: property.lat as number,
-          lng: property.lng as number,
-        })),
+        .map(p => ({ id: p.id, title: p.title, lat: p.lat as number, lng: p.lng as number })),
     [filteredProperties]
   )
 
@@ -154,30 +157,23 @@ export default function TenantDashboard() {
     if (markers.length > 0) return [markers[0].lat, markers[0].lng]
     return [33.6844, 73.0479]
   }, [markers])
+
   async function loadRatableItems() {
     try {
       const response = await fetch('/api/leases?status=expired,terminated', { cache: 'no-store' })
       if (!response.ok) return
-      
       const data = await response.json()
-      
-      // Get already rated items
+
       const ratingsResponse = await fetch('/api/ratings', { cache: 'no-store' })
       const ratingsData = ratingsResponse.ok ? await ratingsResponse.json() : { ratings: [] }
-      
+
       const ratedLandlordIds = new Set(
-        ratingsData.ratings
-          .filter((r: any) => r.target_type === 'landlord')
-          .map((r: any) => `${r.lease_id}-${r.target_id}`)
+        ratingsData.ratings.filter((r: any) => r.target_type === 'landlord').map((r: any) => `${r.lease_id}-${r.target_id}`)
       )
-      
       const ratedPropertyIds = new Set(
-        ratingsData.ratings
-          .filter((r: any) => r.target_type === 'property')
-          .map((r: any) => `${r.lease_id}-${r.target_id}`)
+        ratingsData.ratings.filter((r: any) => r.target_type === 'property').map((r: any) => `${r.lease_id}-${r.target_id}`)
       )
-      
-      // Transform for landlord ratings
+
       const landlords = data.leases
         .filter((lease: any) => !ratedLandlordIds.has(`${lease.id}-${lease.landlord_id}`))
         .map((lease: any) => ({
@@ -189,9 +185,8 @@ export default function TenantDashboard() {
           unit_number: lease.unit_number,
           end_date: lease.end_date,
         }))
-      
-      // Transform for property ratings
-      const properties = data.leases
+
+      const props = data.leases
         .filter((lease: any) => !ratedPropertyIds.has(`${lease.id}-${lease.property_id}`))
         .map((lease: any) => ({
           lease_id: lease.id,
@@ -201,9 +196,9 @@ export default function TenantDashboard() {
           unit_number: lease.unit_number,
           end_date: lease.end_date,
         }))
-      
+
       setRatableLandlords(landlords)
-      setRatableProperties(properties)
+      setRatableProperties(props)
     } catch (err) {
       console.error('Failed to load ratable items:', err)
     }
@@ -221,21 +216,16 @@ export default function TenantDashboard() {
         comment: comment || undefined,
       }),
     })
-
     if (!response.ok) {
       const data = await response.json()
       throw new Error(data.error || 'Failed to submit rating')
     }
-
-    // Reload to remove rated item
     await loadRatableItems()
   }
 
   useEffect(() => {
-    // ... existing load calls
-    loadRatableItems()  // ← Add this
+    loadRatableItems()
   }, [])
-
 
   return (
     <DashboardShell role="tenant">
@@ -247,7 +237,8 @@ export default function TenantDashboard() {
             actionLabel="Reset Search"
             onAction={resetSearch}
           />
-          {hasPendingLease ? (
+
+          {hasPendingLease && (
             <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
               You have a pending lease offer.{' '}
               <Link href="/tenant/leases" className="font-semibold underline">
@@ -255,7 +246,8 @@ export default function TenantDashboard() {
               </Link>
               .
             </div>
-          ) : null}
+          )}
+
           {apiError && (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               <span>{apiError}</span>
@@ -299,7 +291,7 @@ export default function TenantDashboard() {
                 <span className="text-sm font-medium text-blue-800">Search (city/title)</span>
                 <input
                   value={searchQuery}
-                  onChange={(e) => {
+                  onChange={e => {
                     const nextQuery = e.target.value
                     setSearchQuery(nextQuery)
                     syncFiltersToUrl(nextQuery, typeFilter)
@@ -323,9 +315,7 @@ export default function TenantDashboard() {
                 >
                   <option value="all">All types</option>
                   {propertyTypes.map(type => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
+                    <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
               </label>
@@ -358,13 +348,15 @@ export default function TenantDashboard() {
                       property={property}
                       href={`/properties/${property.id}`}
                       onClick={() => setSelectedPropertyId(property.id)}
+                      coverImage={covers[property.id]}
                     />
                   </div>
                 ))}
               </div>
             )}
           </section>
-           {ratableLandlords.length > 0 && (
+
+          {ratableLandlords.length > 0 && (
             <RatingCard
               items={ratableLandlords}
               onRate={handleRate}
@@ -381,7 +373,6 @@ export default function TenantDashboard() {
               description="Help others by rating the properties you've lived in"
             />
           )}
-
         </div>
       </div>
     </DashboardShell>

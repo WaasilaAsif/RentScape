@@ -192,53 +192,75 @@ export default function LeasesPage() {
           {showCreateForm && (
             <Card title="Create Lease" description="Assign a tenant to an available unit">
               <form onSubmit={handleCreateLease} className="grid gap-4 md:grid-cols-2">
-                <select
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  value={createForm.unit_id}
-                  onChange={e => setCreateForm({ ...createForm, unit_id: e.target.value })}
-                  required
-                >
-                  <option value="">Select Available Unit</option>
-                  {units.map(unit => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.property_title} - Unit {unit.unit_number} (PKR {unit.monthly_rent.toLocaleString()}/mo)
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-blue-900">Unit</label>
+                  <select
+                    className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                    value={createForm.unit_id}
+                    onChange={e => setCreateForm({ ...createForm, unit_id: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Available Unit</option>
+                    {units.map(unit => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.property_title} - Unit {unit.unit_number} (PKR {unit.monthly_rent.toLocaleString()}/mo)
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <select
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  value={createForm.tenant_id}
-                  onChange={e => setCreateForm({ ...createForm, tenant_id: e.target.value })}
-                  required
-                >
-                  <option value="">Select Tenant</option>
-                  {tenants.map(tenant => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.full_name} ({tenant.email})
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-blue-900">Tenant</label>
+                  <select
+                    className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                    value={createForm.tenant_id}
+                    onChange={e => setCreateForm({ ...createForm, tenant_id: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Tenant</option>
+                    {tenants.map(tenant => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.full_name} ({tenant.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <input
-                  type="date"
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Start Date"
-                  value={createForm.start_date}
-                  onChange={e => setCreateForm({ ...createForm, start_date: e.target.value })}
-                  required
-                />
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-blue-900">Start Date</label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                    value={createForm.start_date}
+                    onChange={e => setCreateForm({ ...createForm, start_date: e.target.value })}
+                    required
+                  />
+                </div>
 
-                <input
-                  type="date"
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="End Date"
-                  value={createForm.end_date}
-                  onChange={e => setCreateForm({ ...createForm, end_date: e.target.value })}
-                  required
-                />
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-blue-900">End Date</label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                    value={createForm.end_date}
+                    onChange={e => setCreateForm({ ...createForm, end_date: e.target.value })}
+                    required
+                  />
+                </div>
 
-                <div className="flex items-center gap-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-blue-900">Occupant Count</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                    value={createForm.occupant_count}
+                    onChange={e => setCreateForm({ ...createForm, occupant_count: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
                   <input
                     type="checkbox"
                     id="is_family"
@@ -246,28 +268,21 @@ export default function LeasesPage() {
                     onChange={e => setCreateForm({ ...createForm, is_family: e.target.checked })}
                     className="h-4 w-4 rounded border-blue-300"
                   />
-                  <label htmlFor="is_family" className="text-sm text-slate-700">
+                  <label htmlFor="is_family" className="text-sm font-medium text-blue-900">
                     Family Lease
                   </label>
                 </div>
 
-                <input
-                  type="number"
-                  min="1"
-                  className="rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Occupant Count"
-                  value={createForm.occupant_count}
-                  onChange={e => setCreateForm({ ...createForm, occupant_count: Number(e.target.value) })}
-                  required
-                />
-
-                <textarea
-                  className="md:col-span-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
-                  placeholder="Notes (optional)"
-                  rows={3}
-                  value={createForm.notes}
-                  onChange={e => setCreateForm({ ...createForm, notes: e.target.value })}
-                />
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-sm font-medium text-blue-900">Notes</label>
+                  <textarea
+                    className="w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
+                    placeholder="Optional"
+                    rows={3}
+                    value={createForm.notes}
+                    onChange={e => setCreateForm({ ...createForm, notes: e.target.value })}
+                  />
+                </div>
 
                 <div className="md:col-span-2">
                   <button
@@ -278,6 +293,7 @@ export default function LeasesPage() {
                     {submitting ? 'Creating...' : 'Create Lease'}
                   </button>
                 </div>
+
               </form>
             </Card>
           )}

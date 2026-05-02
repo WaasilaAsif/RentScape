@@ -72,6 +72,12 @@ export function useCurrentUser() {
 }
 // to reset user after logout
 export function resetCurrentUser() {
+  snapshot = { user: null, isLoading: false, error: null } // isLoading: false, no fetchMe
+  inFlight = null
+  emit()
+}
+// In useCurrentUser.ts
+export function refetchCurrentUser() {
   snapshot = { user: null, isLoading: true, error: null }
   inFlight = null
   emit()

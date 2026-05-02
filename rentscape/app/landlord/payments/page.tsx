@@ -45,7 +45,7 @@ export default function PaymentsPage() {
   async function loadPayments() {
     setLoading(true)
     try {
-      const response = await fetch('/api/payments', { cache: 'no-store' })
+      const response = await fetch('/api/payments/landlord', { cache: 'no-store' })
       if (!response.ok) throw new Error('Failed to fetch payments')
       const data = await response.json()
       setPayments(Array.isArray(data.payments) ? data.payments : [])
