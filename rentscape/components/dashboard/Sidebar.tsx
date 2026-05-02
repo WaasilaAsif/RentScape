@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser, resetCurrentUser } from "@/hooks/useCurrentUser";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 type DashboardRole = "tenant" | "landlord";
 
@@ -18,17 +19,14 @@ const navItems: Record<DashboardRole, Array<{ label: string; href: string; exact
     { label: "Ratings", href: "/tenant/ratings" },
   ],
   landlord: [
-
-//Added the exact = true by aman. Did not need in mine but it is something to consider if we have any routes that could be a substring of another. For example, if we had a "/landlord/dashboard/analytics" route, then without exact: true, the "Dashboard" nav item would be active for both "/landlord/dashboard" and "/landlord/dashboard/analytics". By adding exact: true to the "Dashboard" nav item, it will only be active when the pathname is exactly "/landlord/dashboard", and not for any sub-routes. This helps ensure that the correct nav item is highlighted based on the current route.
     { label: "Dashboard", href: "/landlord/dashboard", exact: true },
     { label: "Listings", href: "/landlord/listings" },
     { label: "Leases", href: "/landlord/leases" },
     { label: "Maintenance", href: "/landlord/maintenance" },
     { label: "Payments", href: "/landlord/payments" },
     { label: "Profile", href: "/landlord/profile" },
-
   ],
-}
+};
 
 interface Property {
   id: string;
@@ -43,10 +41,10 @@ interface SidebarProps {
 
 const MIN_WIDTH = 60;
 const MAX_WIDTH = 360;
-const DEFAULT_WIDTH = 288; // w-72
+const DEFAULT_WIDTH = 288;
 
 export function Sidebar({ role }: SidebarProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -71,13 +69,16 @@ export function Sidebar({ role }: SidebarProps) {
     }
   }, [role]);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    isDragging.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  }, [width]);
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      isDragging.current = true;
+      startX.current = e.clientX;
+      startWidth.current = width;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [width]
+  );
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -91,8 +92,7 @@ export function Sidebar({ role }: SidebarProps) {
       isDragging.current = false;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      // Snap to collapsed or open
-      setWidth(prev => prev < 120 ? MIN_WIDTH : DEFAULT_WIDTH);
+      setWidth((prev) => (prev < 120 ? MIN_WIDTH : DEFAULT_WIDTH));
     };
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
@@ -116,72 +116,113 @@ export function Sidebar({ role }: SidebarProps) {
   }
 
   return (
-    <aside
+    <motion.aside
       style={{ width }}
-      className="sidebar-scroll sticky top-0 hidden h-screen shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-3 py-8 lg:flex transition-none relative"
+      initial={{ x: -40, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="sidebar-scroll sticky top-0 hidden h-screen shrink-0 flex-col gap-8 overflow-y-auto border-r border-blue-200/30 bg-gradient-to-b from-blue-50 to-indigo-50 px-3 py-8 lg:flex relative"
     >
-      {/* Content — hide when collapsed */}
-      {!isCollapsed && (
-        <>
-          <div className="space-y-2 px-3">
-            <p className="text-sm uppercase tracking-widest text-blue-600 font-semibold">RentScape</p>
-            <h2 className="text-2xl font-bold text-blue-900">
-              {role === "tenant" ? "Tenant Hub" : "Landlord Hub"}
-            </h2>
-          </div>
-
-          <nav className="flex flex-1 flex-col gap-1">
-            {navItems[role].map((item) => {
-              const isActive = item.exact
-                ? pathname === item.href
-                : pathname === item.href || pathname.startsWith(item.href + '/')
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-blue-600 text-white font-semibold'
-                      : 'text-blue-800 hover:bg-blue-100/60 hover:text-blue-900'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <div className="rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-200/50 p-4 text-sm text-blue-900 mx-3">
-            <p className="font-semibold mb-1">
-              Welcome,{" "}
-              {userLoading ? (
-                <span className="inline-block h-4 w-20 animate-pulse rounded bg-blue-200/60 align-middle" />
-              ) : userName}!
-            </p>
-            <p className="text-blue-700/80">
-              {role === "tenant"
-                ? "Check your upcoming stays and active rental agreements."
-                : "Your portfolio overview and active rentals appear here."}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="mx-3 w-auto rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-100/70 disabled:opacity-60"
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col gap-8 flex-1"
           >
-            {loggingOut ? "Logging out..." : "Logout"}
-          </button>
-        </>
-      )}
+            {/* Brand */}
+            <div className="space-y-1 px-3">
+              <p className="text-sm uppercase tracking-widest text-blue-600 font-semibold">
+                RentScape
+              </p>
+              <h2 className="text-2xl font-bold text-blue-900">
+                {role === "tenant" ? "Tenant Hub" : "Landlord Hub"}
+              </h2>
+            </div>
+
+            {/* Nav */}
+            <nav className="flex flex-1 flex-col gap-1">
+              {navItems[role].map((item) => {
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(item.href + "/");
+
+                return (
+                  <Link key={item.href} href={item.href} className="relative block">
+                    {/* Sliding active pill */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-pill"
+                        className="absolute inset-0 rounded-xl bg-blue-600"
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      />
+                    )}
+
+                    {/* Left accent bar */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-bar"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      />
+                    )}
+
+                    <motion.span
+                      whileHover={{ x: isActive ? 0 : 4 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className={`relative z-10 flex items-center rounded-xl px-4 py-2.5 text-sm font-medium ${
+                        isActive
+                          ? "text-white font-semibold"
+                          : "text-blue-800 hover:text-blue-900"
+                      }`}
+                    >
+                      {item.label}
+                    </motion.span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Welcome card */}
+            <div className="rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-200/50 p-4 text-sm text-blue-900 mx-3">
+              <p className="font-semibold mb-1">
+                Welcome,{" "}
+                {userLoading ? (
+                  <span className="inline-block h-4 w-20 animate-pulse rounded bg-blue-200/60 align-middle" />
+                ) : (
+                  userName
+                )}
+                !
+              </p>
+              <p className="text-blue-700/80 text-xs leading-relaxed">
+                {role === "tenant"
+                  ? "Check your upcoming stays and active rental agreements."
+                  : "Your portfolio overview and active rentals appear here."}
+              </p>
+            </div>
+
+            {/* Logout */}
+            <motion.button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className="mx-3 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-100/70 disabled:opacity-60"
+            >
+              {loggingOut ? "Logging out..." : "Logout"}
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Drag handle */}
       <div
         onMouseDown={onMouseDown}
         className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-300/50 transition-colors"
       />
-    </aside>
+    </motion.aside>
   );
 }
