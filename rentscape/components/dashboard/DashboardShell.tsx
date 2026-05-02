@@ -22,8 +22,8 @@ interface DashboardShellProps {
 
 export function DashboardShell({ role, children }: DashboardShellProps) {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-400">
+    <div className="min-h-screen text-slate-900">
+      <div className="flex min-h-screen w-full">
         <Sidebar role={role} />
         <main className="flex-1">{children}</main>
       </div>
