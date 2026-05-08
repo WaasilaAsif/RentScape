@@ -32,7 +32,6 @@ const priorities = [
   { value: "urgent", label: "Urgent", desc: "Immediate danger or major damage", color: "text-rose-600",    bg: "bg-rose-50 border-rose-200",       selected: "bg-rose-100 border-rose-500 ring-2 ring-rose-200"        },
 ] as const;
 
-// ── Photo Upload ──────────────────────────────────────────────────────────────
 function PhotoUpload({ photos, setPhotos }: { photos: File[]; setPhotos: (f: File[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);

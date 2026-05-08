@@ -45,7 +45,8 @@ function RequestDrawer({
   onClose,
   onUpdateStatus,
   updating,
-}: {
+}: 
+{
   request: MaintenanceRequest
   onClose: () => void
   onUpdateStatus: (id: string, status: MaintenanceRequest['status']) => void

@@ -4,7 +4,8 @@ import { pool } from '@/lib/db'
 import { z } from 'zod'
 
 const createFamilyMemberSchema = z.object({
-  lease_id: z.string().uuid(),
+  //lease_id: z.string().uuid(),
+  lease_id: z.string(),
   full_name: z.string().min(2),
   cnic: z.string().optional(),
   relation: z.string().min(2),

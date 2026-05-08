@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const error = err as Error
     console.error('GET /api/amenities error:', error.message)
     return NextResponse.json(
-      { error: 'Failed to fetch amenities', message: error.message },
+      { error: 'Failed to fetc amenities', message: error.message },
       { status: 500 }
     )
   }
