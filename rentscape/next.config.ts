@@ -6,9 +6,9 @@
 
 // export default nextConfig;
 //My edits
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ['pg', 'pg-native', 'pg-pool'],
   images: {
     remotePatterns: [
       {
