@@ -3,12 +3,19 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('Missing Supabase env vars in middleware')
+    return NextResponse.next()
+  }
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
-
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('Missing Supabase env vars in middleware')
+    return NextResponse.next()
+  }
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -39,7 +46,7 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  const publicRoutes = ['/login', '/signup', '/', '/_next', '/favicon.ico','form']
+  const publicRoutes = ['/login', '/signup', '/', '/_next', '/favicon.ico']
   const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
 
   if (isPublicRoute) return response
